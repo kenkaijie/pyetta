@@ -1,0 +1,45 @@
+[project]
+name = "pyetta"
+version = "0.0.1"
+description = "Tooling for automated testing on embedded bare metal platforms."
+authors = [
+    {name = "Kenneth Ng", email = "ngkaijie@hotmail.com"}
+]
+maintainers= [
+    {name = "Kenneth Ng", email = "ngkaijie@hotmail.com"}
+]
+requires-python = ">=3.7"
+license = {file = "LICENSE.rst"}
+readme = "README.rst"
+dependencies = [
+	"pyserial",
+	"click",
+	"pyocd",
+	"colorama",
+	"prettytable"
+]
+classifiers = [
+	"Development Status :: 1 - Planning",
+	"Environment :: Console",
+	"License :: OSI Approved :: MIT License",
+	"Natural Language :: English",
+	"Programming Language :: Python :: 3.7",
+	"Programming Language :: Python :: 3.8",
+	"Programming Language :: Python :: 3.9",
+	"Topic :: Software Development :: Embedded Systems",
+	"Topic :: Software Development :: Testing",
+	"Topic :: System :: Hardware",
+	"Topic :: Utilities"
+]
+
+[project.optional-dependencies]
+test = [
+	"pytest"
+]
+
+[project.scripts]
+pyetta = "pyetta.cli:main"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
