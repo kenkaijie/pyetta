@@ -16,7 +16,8 @@ dependencies = [
 	"click",
 	"pyocd",
 	"colorama",
-	"prettytable"
+	"prettytable",
+	"junitparser"
 ]
 classifiers = [
 	"Development Status :: 1 - Planning",
@@ -33,8 +34,10 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-test = [
-	"pytest"
+dev = [
+	"pytest",
+	"sphinx",
+	"sphinx-rtd-theme"
 ]
 
 [project.scripts]

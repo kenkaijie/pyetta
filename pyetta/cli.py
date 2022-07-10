@@ -15,7 +15,9 @@ import sys
 from prettytable import PrettyTable, prettytable
 from serial import Serial
 
+from pyetta.captures.interfaces import CaptureBuilder
 from pyetta.loaders.pyocd_loader import PyOCDLoader
+from pyetta.output.interfaces import OutputBuilder
 from pyetta.parsers.parser_factory import ParserFactory
 
 import logging
@@ -128,6 +130,29 @@ def serial(firmware: str, parser_creation_string: str, port: str, baud: int,
         click.echo(f"Execution complete, result={'PASS' if result == 0 else 'FAIL'}.")
 
     sys.exit(result)
+
+
+@cli.command("run", help="Executes a load, execute, capture, and parse the output in that order.")
+@click.option("--loader", "loader_str", help="The creation string for the loader.", type=str, default=None)
+@click.option("--capture", "capture_str", help="The creation string for the capture.", type=str, default=None)
+@click.option("--parser", "parser_str", help="The creation string for the parser.", type=str, default=None)
+@click.option("--output", "output_str", help="The creation string for the output", type=str, default="type=stdout")
+def run(loader_str: str, capture_str: str, parser_str: str, output_str: str):
+
+    loader = LoaderBuilder.from_string(loader_str)
+    parser = ParserBuilder.from_string(parser_str)
+    capture = CaptureBuilder.from_string(capture_str)
+    output = OutputBuilder.from_string(output_str)
+
+    capture.register_parser(parser)
+    loader.load()
+    loader.execute()
+
+    tests = capture.capture_and_parse_output()
+
+    output.generate_output(tests)
+
+    return sys.exit(get_test_final_result(tests))
 
 
 def main():
