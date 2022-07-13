@@ -5,12 +5,11 @@
 #       - Separate CLI commands from the entry script (do it via a cli folder instead)
 #       - Automate releases to github and publishing to pypi?
 
-from pyetta.cli.cli import cli
-
 import logging
 
+from pyetta.cli.cli import cli
+
 logging.basicConfig(level=logging.ERROR)
-log = logging.getLogger(__name__)
 
 
 def main():

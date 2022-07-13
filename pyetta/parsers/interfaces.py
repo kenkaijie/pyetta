@@ -11,7 +11,7 @@ class IParser(ABC):
         pass
 
     @abstractmethod
-    def abort(self, result: int = 1) -> None:
+    def abort(self) -> None:
         pass
 
     @property

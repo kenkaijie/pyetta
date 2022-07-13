@@ -13,8 +13,8 @@ license = {file = "LICENSE.rst"}
 readme = "README.rst"
 dependencies = [
 	"pyserial",
-	"click",
-	"pyocd",
+	"click >=8.0",
+	"pyocd >= 0.34",
 	"colorama",
 	"prettytable",
 	"junit-xml"
