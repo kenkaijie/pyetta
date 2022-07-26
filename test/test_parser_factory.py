@@ -3,7 +3,7 @@ from typing import Optional
 import pytest
 
 from pyetta.parsers.interfaces import IParser
-from pyetta.parsers.parser_factory import ParserFactory
+from pyetta.parsers.builder import ParserBuilder
 
 
 def test_parser_factory_incorrect_base_class_fails():
@@ -12,7 +12,7 @@ def test_parser_factory_incorrect_base_class_fails():
         pass
 
     with pytest.raises(TypeError):
-        ParserFactory.register_parser('foo', FooParser)
+        ParserBuilder.register_parser('foo', FooParser)
 
 
 def test_parser_factory_registration_works():
@@ -45,6 +45,6 @@ def test_parser_factory_registration_works():
         def done(self, result: Optional[int] = 1) -> Optional[int]:
             return self._result
 
-    ParserFactory.register_parser('foo', FooParser)
+    ParserBuilder.register_parser('foo', FooParser)
 
-    assert ParserFactory.get_parser_type_by_name('foo') == FooParser
+    assert ParserBuilder.get_parser_type_by_name('foo') == FooParser

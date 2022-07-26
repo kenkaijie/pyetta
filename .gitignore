@@ -47,3 +47,6 @@ cover/
 # Sphinx documentation
 docs/_build/
 
+# Virtual Environments
+venv/
+.venv/

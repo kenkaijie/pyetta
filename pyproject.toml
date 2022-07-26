@@ -13,10 +13,11 @@ license = {file = "LICENSE.rst"}
 readme = "README.rst"
 dependencies = [
 	"pyserial",
-	"click",
-	"pyocd",
+	"click >=8.0",
+	"pyocd >= 0.34",
 	"colorama",
-	"prettytable"
+	"prettytable",
+	"junit-xml"
 ]
 classifiers = [
 	"Development Status :: 1 - Planning",
@@ -33,12 +34,14 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-test = [
-	"pytest"
+dev = [
+	"pytest",
+	"sphinx",
+	"sphinx-rtd-theme"
 ]
 
 [project.scripts]
-pyetta = "pyetta.cli:main"
+pyetta = "pyetta.cli_entry:main"
 
 [build-system]
 requires = ["setuptools", "setuptools-scm"]
