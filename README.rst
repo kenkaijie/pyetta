@@ -6,6 +6,7 @@ Roadmap
 ==========
 
 The current roadmap for features (in no specific order):
+
 - Plugin support for registering loaders, runner, and parser
 - Add support for env variables as options
 - Tidy up CLI to run tests
