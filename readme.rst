@@ -6,6 +6,10 @@ pyetta
     :target: https://pyetta.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
+.. image:: https://img.shields.io/discord/1005420113194930309?color=C5F0A4   
+    :target: https://discord.gg/ZY2rRgb236
+    :alt: Discord
+
 ``pyetta`` is a multi-tool made to simplify device on target testing workflows by providing some helpers
 which modularise the process of on target testing. It provides both a CLI for simple use cases, and a library of
 components that can simplify creation of test scripts.
