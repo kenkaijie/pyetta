@@ -35,11 +35,11 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
-	"pytest",
 	"sphinx",
 	"sphinx-rtd-theme",
 	"sphinxcontrib-mermaid",
-	"setuptools-scm"
+	"tomli",
+	"pytest",
 ]
 
 [project.urls]
