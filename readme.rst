@@ -7,7 +7,7 @@ pyetta
     :alt: Documentation Status
 
 ``pyetta`` is a multi-tool made to simplify device on target testing workflows by providing some helpers
-which modularise the process of on target testing. It provides botha  CLI for simple use cases, and a library of
+which modularise the process of on target testing. It provides both a CLI for simple use cases, and a library of
 components that can simplify creation of test scripts.
 
 Roadmap
