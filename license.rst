@@ -1,6 +1,8 @@
 ================
-pyetta - License
+License (MIT)
 ================
+
+Below is the license for the ``pyetta`` project, which includes source codes located in the repository.
 
 Copyright 2022 Kenneth Ng <ngkaijie@hotmail.com>
 

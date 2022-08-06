@@ -4,16 +4,15 @@
 #       - Implement publishing
 #       - Separate CLI commands from the entry script (do it via a cli folder instead)
 #       - Automate releases to github and publishing to pypi?
-
 import logging
-
 from pyetta.cli.cli import cli
+from pyetta.cli.utils import CliState
 
 logging.basicConfig(level=logging.ERROR)
 
 
 def main():
-    cli(auto_envvar_prefix="PYETTA")
+    cli(auto_envvar_prefix="PYETTA", obj=CliState())
 
 
 if __name__ == '__main__':

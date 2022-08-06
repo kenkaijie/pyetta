@@ -32,8 +32,8 @@ class PyOCDDeviceLoader(IDeviceLoader):
         self._board = None
         return self._session.__exit__(exc_type, exc_val, exc_tb)
 
-    def load_firmware(self, firmware_path: Path, progress: ProgressCallback) -> None:
-        programmer = FileProgrammer(self._session, progress=progress)
+    def load_firmware(self, firmware_path: Path, update_progress: ProgressCallback) -> None:
+        programmer = FileProgrammer(self._session, progress=update_progress)
         programmer.program(file_or_path=str(firmware_path))
 
     def reset_device(self) -> None:
