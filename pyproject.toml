@@ -10,11 +10,11 @@ maintainers= [
 ]
 requires-python = ">=3.7"
 license = {text = "MIT License"}
-readme = "README.rst"
+readme = "readme.rst"
 dependencies = [
 	"pyserial",
-	"click >=8.0",
-	"pyocd >= 0.34",
+	"click>=8.0",
+	"pyocd>=0.34",
 	"colorama",
 	"prettytable",
 	"junit-xml"
@@ -37,12 +37,17 @@ classifiers = [
 dev = [
 	"pytest",
 	"sphinx",
-	"sphinx-rtd-theme"
+	"sphinx-rtd-theme",
+	"sphinxcontrib-mermaid",
+	"setuptools-scm"
 ]
+
+[project.urls]
+repository = "https://github.com/kenkaijie/pyetta"
 
 [project.scripts]
 pyetta = "pyetta.cli_entry:main"
 
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
