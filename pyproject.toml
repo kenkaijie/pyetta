@@ -44,6 +44,7 @@ dev = [
 
 [project.urls]
 repository = "https://github.com/kenkaijie/pyetta"
+documentation = "https://pyetta.readthedocs.io/"
 
 [project.scripts]
 pyetta = "pyetta.cli_entry:main"

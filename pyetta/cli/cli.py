@@ -12,12 +12,13 @@ from pyetta.cli.cli_helpers import cli_process_io_collector
 from pyetta.cli.utils import PyettaCommand, PyettaGroup, CliState
 from pyetta.loaders.interfaces import IDeviceLoader
 from pyetta.loaders.pyocd import PyOCDDeviceLoader
+from pyetta.parsers.interfaces import Parser
 
 import logging
 import importlib.util
 import sys
 
-from pyetta.parsers.utils import result_from_test_suites
+from pyetta.parsers.utils import generate_exit_code
 
 log = logging.getLogger(__name__)
 
@@ -169,7 +170,7 @@ def cstdin(context: Context, parser_name: str, fail_empty: bool,
     try:
         click.echo(f"Execute test runner for test framework: {parser_name}")
         test_suites = cli_process_io_collector(sys.stdin, parser_name, loader=loader)
-        result = result_from_test_suites(test_suites, fail_empty, fail_skipped)
+        result = Parser.generate_exit_code(test_suites, fail_empty, fail_skipped)
 
         if junit is not None:
             with open(junit, 'w') as fo:
@@ -198,7 +199,7 @@ def cfile(context: Context, parser_name: str, file: Path, fail_empty: bool, fail
         with open(file, "r") as fi:
             click.echo(f"Execute test runner for test framework: {parser_name}")
             test_suites = cli_process_io_collector(fi, parser_name, loader=loader)
-        result = result_from_test_suites(test_suites, fail_empty, fail_skipped)
+        result = Parser.generate_exit_code(test_suites, fail_empty, fail_skipped)
 
         if junit is not None:
             with open(junit, 'w') as fo:
@@ -230,7 +231,7 @@ def cserial(context: Context, parser_name: str, port: str, baud: int, fail_empty
             click.echo(f"Execute test runner for test framework: {parser_name}")
             test_suites = cli_process_io_collector(capture, parser_name,
                                                    decode='ascii', loader=loader)
-        result = result_from_test_suites(test_suites, fail_empty, fail_skipped)
+        result = Parser.generate_exit_code(test_suites, fail_empty, fail_skipped)
 
         if junit is not None:
             with open(junit, 'w') as fo:

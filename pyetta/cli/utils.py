@@ -11,6 +11,8 @@ from pyetta.loaders.interfaces import IDeviceLoader
 
 @dataclass
 class CliState:
+    """ CLI shared state.
+    """
     extras: Optional[Path] = None
     plugins_filter: Optional[Set[str]] = None
     loader: Optional[IDeviceLoader] = None
