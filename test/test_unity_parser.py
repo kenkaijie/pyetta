@@ -1,57 +1,87 @@
 
-from junit_xml import TestCase
+from junit_xml import TestCase, TestSuite
 
-from pyetta.parsers.unity_parser import UnityParser
+from pyetta.parsers import UnityParser
+
+
+def assert_test_case_equivalent(a: TestCase, b: TestCase) -> None:
+    """Helper to evaluate equality for 2 test cases. Used with pytest, so wil directly assert.
+    :param a: Test case to check.
+    :param b: Other test case to check.
+    """
+
+    attr_a = [attr for attr in dir(a)]
+    attr_b = [attr for attr in dir(b)]
+
+    assert attr_a == attr_b
+    for attr in attr_a:
+        if not attr.startswith("__"):
+            val_a = getattr(a, attr)
+            val_b = getattr(b, attr)
+            if not callable(val_a) and not callable(val_b):
+                assert val_a == val_b
+            elif callable(val_a) and callable(val_b):
+                continue
+            else:
+                # raise an assert here due to mismatch, thus they are not equal
+                assert False
 
 
 def test_parse_test_pass_information():
 
+    test_line = b'/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS'
+
+    expected_test_case = TestCase(name="test_led_on_command_turns_on_led",
+                                  file="/mypath/foo.c",
+                                  line=19,
+                                  stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
+
     parser = UnityParser()
 
-    parser.scan_line("/var/jenkins/workspace/cmake-sample-ken/test/test_embedded/test_embedded.c:19:test_led_on_command_turns_on_led:PASS")
+    parser.feed_data(test_line)
+
+    parser.stop()
 
     assert len(parser.test_suites) == 1
     assert len(parser.test_suites[0].test_cases) == 1
+
     test_case: TestCase = parser.test_suites[0].test_cases[0]
-    assert test_case.is_error() is False
-    assert test_case.is_failure() is False
-    assert test_case.is_skipped() is False
-    assert test_case.name == "test_led_on_command_turns_on_led"
-    assert test_case.line == 19
-    assert test_case.file == "/var/jenkins/workspace/cmake-sample-ken/test/test_embedded/test_embedded.c"
+
+    assert_test_case_equivalent(expected_test_case, test_case)
 
 
 def test_parse_test_output():
     test_output = [
-        "/var/jenkins/workspace/cmake-sample-ken/test/test_embedded/test_embedded.c:19:test_led_on_command_turns_on_led:PASS",
-        "/var/jenkins/workspace/cmake-sample-ken/test/test_embedded/test_embedded.c:20:test_led_off_command_turns_off_led:FAIL:Test Message!",
-        "/var/jenkins/workspace/cmake-sample-ken/test/test_embedded/test_embedded.c:23:test_adder_adds_correctly:IGNORE",
-        "",
-        "-----------------------",
-        "3 Tests 1 Failures 1 Ignored ",
-        "FAIL"
+        b"/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS",
+        b"/mypath/foo.c:20:test_led_off_command_turns_off_led:FAIL:Test Message!",
+        b"/mypath/foo.c:23:test_adder_adds_correctly:IGNORE",
+        b"",
+        b"-----------------------",
+        b"3 Tests 1 Failures 1 Ignored ",
+        b"FAIL"
     ]
 
-    parser = UnityParser()
+    expected_test_cases = [
+        TestCase(name="test_led_on_command_turns_on_led", file="/mypath/foo.c", line=19,
+                 stdout=test_output[0].decode('ascii')),
+        TestCase(name="test_led_off_command_turns_off_led", file="/mypath/foo.c", line=20,
+                 stdout=test_output[1].decode('ascii')),
+        TestCase(name="test_adder_adds_correctly", file="/mypath/foo.c", line=23,
+                 stdout=test_output[2].decode('ascii')),
+    ]
+
+    expected_test_cases[1].add_failure_info("Test Message!")
+    expected_test_cases[2].add_skipped_info()
+
+    parser = UnityParser(name="tests")
 
     for line in test_output:
-        parser.scan_line(line)
+        parser.feed_data(line)
 
     assert parser.done
 
-    test_count = 0
-    fail_count = 0
-    skip_count = 0
-    error_count = 0
+    assert len(parser.test_suites) == 1
+    assert len(parser.test_suites[0].test_cases) == 3
 
-    for test_suite in parser.test_suites:
-        for test in test_suite.test_cases:  # type: TestCase
-            test_count += 1
-            fail_count += 1 if test.is_failure() else 0
-            skip_count += 1 if test.is_skipped() else 0
-            error_count += 1 if test.is_error() else 0
-
-    assert test_count == 3
-    assert fail_count == 1
-    assert skip_count == 1
-    assert error_count == 0
+    for idx, test_case in enumerate(parser.test_suites[0].test_cases):
+        assert_test_case_equivalent(test_case, expected_test_cases[idx])

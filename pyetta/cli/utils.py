@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+import inspect
+import logging
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
 from typing import Dict, List, Tuple, Optional, Any, Sequence, Union, Callable, Set
@@ -6,7 +8,13 @@ from typing import Dict, List, Tuple, Optional, Any, Sequence, Union, Callable, 
 import click
 from click import Context, HelpFormatter, Command
 
-from pyetta.loaders.interfaces import IDeviceLoader
+from pyetta.collectors import Collector
+from pyetta.loaders.interfaces import Loader
+from pyetta.parsers import Parser
+from pyetta.reporters import Reporter
+
+
+log = logging.getLogger("pyetta.cli")
 
 
 @dataclass
@@ -15,7 +23,47 @@ class CliState:
     """
     extras: Optional[Path] = None
     plugins_filter: Optional[Set[str]] = None
-    loader: Optional[IDeviceLoader] = None
+
+
+@dataclass
+class ExecutionPipeline:
+    """The default execution pipeline, this takes encodes the algorithm used to flash and load a system.
+    """
+    loader: Optional[Loader] = None
+    collector: Optional[Collector] = None
+    parsers: List[Parser] = field(default_factory=list)
+    reporters: List[Reporter] = field(default_factory=list)
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        if key == "loader" and self.loader is not None:
+            raise ValueError("A loader has already been opened. The CLI only supports a single loader.")
+        elif key == "collector" and self.collector is not None:
+            raise ValueError("A collector has already been opened. The CLI only supports a single collector.")
+        super(ExecutionPipeline, self).__setattr__(key, value)
+
+
+# we only get the items that subclass Exception, we will invisibly pass through BaseException items as they are program
+# stopping exceptions.
+__click_exception_types = tuple(obj for _, obj in inspect.getmembers(click.exceptions)
+                                if inspect.isclass(obj) and issubclass(obj, Exception))
+
+
+def execution_item(func: Callable[[Context, ExecutionPipeline], None]) -> Callable[[Context, ExecutionPipeline], None]:
+    """General decorator for the items that go into an execution plan. Encodes click exceptions to ensure that the
+    proper logging information is hidden.
+    """
+    def execution_function(context: Context, pipeline: ExecutionPipeline) -> None:
+        try:
+            func(context, pipeline)
+        except (EOFError, KeyboardInterrupt) + __click_exception_types as ec:
+            # re-raise, click has official support for these exceptions, and should pass through
+            log.debug("Exception caught while running the execution plan.", exc_info=ec)
+            raise ec
+        except Exception as ec:
+            log.debug("Exception caught while running the execution plan.", exc_info=ec)
+            raise click.ClickException(str(ec)) from ec
+
+    return execution_function
 
 
 class PyettaCommand(click.Command):
@@ -30,8 +78,9 @@ class PyettaCommand(click.Command):
         super(PyettaCommand, self).__init__(*args, **kwargs)
 
 
-class PyettaGroup(click.Group):
-    """The base pyetta click grouping.
+class PyettaCLIRoot(click.Group):
+    """The base pyetta click grouping for subcommands of the cli. Has some "special" hooks to ensure plugins are loaded
+    and the appropriate times.
 
     Provides custom help text which includes both command.
     """
@@ -39,20 +88,37 @@ class PyettaGroup(click.Group):
     def __init__(self,
                  name: Optional[str] = None,
                  commands: Optional[Union[Dict[str, Command], Sequence[Command]]] = None,
-                 pre_invoke_handler: Optional[Callable[[click.Group, Context], None]] = None,
+                 plugin_handler: Optional[Callable[[click.Group, Context], None]] = None,
                  **attrs: Any) -> None:
         """
         :param name: The name of the group.
         :param commands: The commands belonging to this group.
-        :param pre_invoke_handler: A handler that is called just before the invocation of the command, but after the
+        :param plugin_handler: A handler that is called just before the invocation of the command, but after the
                                    argument parsing.
         """
-        self._pre_invoke_handler = pre_invoke_handler
-        super(PyettaGroup, self).__init__(name=name, commands=commands, **attrs)
+        if plugin_handler is not None and not callable(plugin_handler):
+            raise TypeError("plugin_handler must be a callable!")
+        self._plugin_handler = plugin_handler
+        self._plugins_loaded = False
+        super(PyettaCLIRoot, self).__init__(name=name, commands=commands, **attrs)
+
+    def _call_plugins_loaded_once(self, ctx: Context) -> None:
+        """Little tool to ensure the loading of plugins only happens once. This is supposed to be handled as late
+        as possible.
+
+        For click, this is either just before invoking the command, or if the help is called, it will load the plugins
+        before invoking help (to ensure the help can show the new commands).
+        """
+        if not self._plugins_loaded:
+            self._plugins_loaded = True
+            self._plugin_handler(self, ctx)
+
+    def get_help(self, ctx: Context) -> str:
+        self._call_plugins_loaded_once(ctx)
+        return super(PyettaCLIRoot, self).get_help(ctx)
 
     def invoke(self, ctx: Context) -> Any:
-        if self._pre_invoke_handler is not None and callable(self._pre_invoke_handler):
-            self._pre_invoke_handler(self, ctx)
+        self._call_plugins_loaded_once(ctx)
         return super().invoke(ctx)
 
     def format_commands(self, ctx: Context, formatter: HelpFormatter):
