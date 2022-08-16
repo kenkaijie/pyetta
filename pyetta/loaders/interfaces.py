@@ -5,10 +5,22 @@ from typing import Callable
 ProgressCallback = Callable[[int], None]
 
 
-class IDeviceLoader(ABC):
+class Loader(ABC):
+
+    @property
+    @abstractmethod
+    def target(self):
+        pass
+
+    @property
+    @abstractmethod
+    def firmware_path(self):
+        pass
 
     @abstractmethod
     def __enter__(self):
+        """Starts the loader.
+        """
         pass
 
     @abstractmethod
@@ -16,7 +28,7 @@ class IDeviceLoader(ABC):
         pass
 
     @abstractmethod
-    def load_firmware(self, firmware_path: Path, update_progress: ProgressCallback) -> None:
+    def load_firmware(self, update_progress: ProgressCallback) -> None:
         pass
 
     @abstractmethod

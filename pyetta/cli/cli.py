@@ -1,25 +1,29 @@
-import pkgutil
+import contextlib
+import io
 from pathlib import Path
-from types import ModuleType
-from typing import Optional, Dict, Tuple
+from typing import Optional, Tuple, Callable, Dict, List, ContextManager, cast
 
 import click
 from click import pass_context, Context, Parameter
-from junit_xml import to_xml_report_file
+from pyetta.reporters import JUnitXmlReporter
 from serial import Serial
 
-from pyetta.cli.cli_helpers import cli_process_io_collector
-from pyetta.cli.utils import PyettaCommand, PyettaGroup, CliState
-from pyetta.loaders.interfaces import IDeviceLoader
+from pyetta.cli.utils import PyettaCommand, PyettaCLIRoot, CliState, ExecutionPipeline, \
+    execution_config, ExecutionCallable
 from pyetta.loaders.pyocd import PyOCDDeviceLoader
-
-import logging
 import importlib.util
 import sys
 
-from pyetta.parsers.utils import result_from_test_suites
+import logging
 
-log = logging.getLogger(__name__)
+from pyetta.parsers import UnityParser
+
+if sys.version_info < (3, 10):
+    from importlib_metadata import entry_points, EntryPoint
+else:
+    from importlib.metadata import entry_points, EntryPoint
+
+log = logging.getLogger("pyetta.cli")
 
 
 def add_command_to_cli(command: PyettaCommand, command_name: Optional[str] = None) -> None:
@@ -45,7 +49,7 @@ def setup_extras(context: Context, _: Parameter, extras: Optional[Path] = None) 
 
 
 def setup_logging(_: Context, __: Parameter, verbose: int):
-    log_level = logging.ERROR - 10 * max(verbose, 3)
+    log_level = logging.ERROR - (10 * min(verbose, 3))
     logging.getLogger().setLevel(log_level)
 
 
@@ -59,47 +63,46 @@ def load_plugins(_: click.Group, context: Context) -> None:
         extras = context.obj.extras
         plugins_filter = context.obj.plugins_filter
 
-    discovered_plugins: Dict[str, ModuleType] = {
-        name: importlib.import_module(name) for _, name, _ in pkgutil.iter_modules() if name.startswith('pyetta_')
-    }
+    plugin_entry_points: Dict[str, Callable[[], None]] = dict()
+
+    for entry_point in entry_points(group="pyetta.plugin", name="load_plugin"):  # type: EntryPoint
+        load_plugin = entry_point.load()
+        plugin_entry_points[entry_point.module] = load_plugin
 
     if extras is not None:
         module_name = context.obj.extras.stem
-        if module_name not in plugins_filter:
-            spec = importlib.util.spec_from_file_location(module_name, context.obj.extras)
-            module = importlib.util.module_from_spec(spec)
-            discovered_plugins[module_name] = module
-            spec.loader.exec_module(module)
+        spec = importlib.util.spec_from_file_location(module_name, context.obj.extras)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        plugin_entry_points[module_name] = getattr(module, "load_plugin", lambda: None)
 
-    for name, plugin in discovered_plugins.items():
+    for name, load_function in plugin_entry_points.items():
         if name in plugins_filter:
             log.warning(f"Skipped loading plugin '{name}'.")
             continue
-        logging.debug(f"Loading plugin '{name}'.")
-        load_plugin = getattr(plugin, "load_plugin", None)
-        if callable(load_plugin):
-            try:
-                load_plugin()
-            except Exception as ec:
-                raise ImportError(f"Error occurred while executing plugin {name}'s load_plugin function.") from ec
-        else:
-            raise ImportError(f"Could not call module {name}'s load_plugin function")
+        log.debug(f"Loading plugin '{name}'.")
+        try:
+            load_function()
+        except Exception as ec:
+            raise ImportError(f"Error occurred while executing plugin {name}'s load_plugin entry point. "
+                              f"If you cannot uninstall the plugin, use the -x flag to ignore loading of the"
+                              f"offending plugin.") from ec
 
 
-@click.group(chain=True, cls=PyettaGroup, pre_invoke_handler=load_plugins,
+@click.group(chain=True, cls=PyettaCLIRoot, plugin_handler=load_plugins,
              subcommand_metavar="STAGE1 [ARGS]... [STAGE2 [ARGS]...]...")
-@click.version_option()
-@click.option('-v', '--verbose', help="Set verbosity",
-              count=True, is_eager=True, callback=setup_logging, required=False, default=0, expose_value=False)
-@click.option("-x", "--ignore-plugins", help="Name of a plugin to ignore, supports multiples.",
+@click.version_option(message="%(version)s")
+@click.option('-v', 'verbose', help="Sets verbosity. Can be repeated up to 3 times.",
+              count=True, callback=setup_logging, required=False, default=0,
+              is_eager=True, expose_value=False)
+@click.option("-x", "--exclude-plugins", help="Name of a plugin to exclude from loading, supports multiples.",
               required=False, type=str, callback=setup_ignores, multiple=True,
               is_eager=True, expose_value=False)
 @click.option("--extras", help="Path of an extras module to load.",
               required=False, type=click.Path(exists=True, path_type=Path, dir_okay=False), callback=setup_extras,
               is_eager=True, expose_value=False)
 def cli():
-    """
-    Python Embedded Test Toolbox and Automation
+    """Python Embedded Test Toolbox and Automation
 
     Simple tooling to automate running tests runners on an embedded board and collecting
     output for a CI/CD server to consume.
@@ -107,9 +110,66 @@ def cli():
     This command works similar to a pipeline, where we have loaders to load firmware onto a target
     and collectors to collect and parse the output to generate a test result.
 
-    Typical flow: Loader -> Collector -> Output
+    An execution plan requires a Loader, a Collector, a Parser, and [1-N] Reporters.
     """
-    pass
+
+
+@cli.result_callback()
+@pass_context
+def cli_execute_plan(context: Context, setup_functions: List[ExecutionCallable]) -> None:
+
+    log.debug("Entering execution phase.")
+    plan = ExecutionPipeline()
+
+    for setup_function in setup_functions:
+        setup_function(context, plan)
+
+    if not plan.is_valid():
+        raise ValueError("Execution plan missing 1 or more required stages.")
+
+    log.debug("Loaded all execution objects.")
+
+    try:
+        click.echo(f"Loading firmware {plan.loader.firmware_path} to target {plan.loader.target}")
+        with click.progressbar(length=100, label="Flashing", show_eta=True) as progress_bar:
+            def update_progress(progress: float) -> None:
+                progress_pct = int(progress * 100)
+                progress_bar.update(progress_pct - progress_bar.pos)
+
+            plan.loader.load_firmware(update_progress=update_progress)
+    except Exception as ec:
+        log.debug("Error loading firmware to target.", exc_info=ec)
+        raise click.ClickException(str(ec)) from ec
+
+    try:
+        click.echo(f"Executing test runner.")
+
+        plan.loader.start_program()
+
+        done = False
+        while not done:
+            line_bytes = plan.collector.readline()
+
+            if line_bytes is not None and len(line_bytes) > 0:
+                click.echo(line_bytes)
+                plan.parser.feed_data(line_bytes)
+            else:
+                plan.parser.stop()
+
+            done = plan.parser.done
+
+    except Exception as ec:
+        log.debug("Error collecting data from target.", exc_info=ec)
+        raise click.ClickException(str(ec)) from ec
+
+    # pass test suites to reports
+
+    exit_code = 0
+    for reporter in plan.reporters:
+        reporter_exit_code = reporter.generate_report(plan.parser.test_suites)
+        exit_code = max(reporter_exit_code, exit_code)
+
+    context.exit(exit_code)
 
 
 @cli.command("lpyocd", help="Loader for PyOCD.",
@@ -120,96 +180,46 @@ def cli():
               type=str, metavar="PROBE_ID")
 @click.option("--target", help="Chip target to use, must match the target connected to the host",
               required=True, type=str, metavar="TARGET_MCU")
-@pass_context
-def lpyocd(context: Context, firmware: Path, target: str, probe: Optional[str] = None):
-    cli_state = context.find_object(CliState)
-    if cli_state.loader is not None:
-        raise ValueError("A device loader has already been opened. Only 1 loader at a time.")
-    cli_state.loader = context.with_resource(PyOCDDeviceLoader(target=target, probe=probe))
-    try:
-        click.echo(f"Loading firmware {firmware} to target {target}")
-        with click.progressbar(length=100, label="Flashing", show_eta=True) as progress_bar:
-            def update_progress(progress: float) -> None:
-                progress_pct = int(progress * 100)
-                progress_bar.update(progress_pct - progress_bar.pos)
-
-            cli_state.loader.load_firmware(firmware, update_progress=update_progress)
-    except Exception as ec:
-        log.exception(ec, exc_info=ec)
-        click.echo(f"Error loading firmware to target: {repr(ec)}")
-        sys.exit(1)
-    else:
-        click.echo("Loading completed.")
-
-
-def collector_common(func):
-    @click.option("--parser", "parser_name", metavar="NAME",
-                  help="Name of test framework. See parsers command for available parsers.",
-                  required=True, multiple=False, type=str)
-    @click.option("--junit", help="Output a Junit XML file.", default=None,
-                  type=click.Path(file_okay=True, dir_okay=False, writable=True, path_type=Path))
-    @click.option("--fail-empty/--no-fail-empty", is_flag=True, default=True,
-                  help="Causes the test execution to return failure if it ran no tests.")
-    @click.option("--fail-skipped/--no-fail-skipped", is_flag=True, default=False,
-                  help="Causes the test execution to return failure if it has to skip tests.")
-    def wrapper(*args, **kwargs):
-        func(*args, **kwargs)
-    return wrapper
+def lpyocd(firmware: Path, target: str, probe: Optional[str] = None) -> ExecutionCallable:
+    """Loader that uses pyocd to service the flashing of firmware to the board. Note for this loader
+    to work, pyocd must be loaded with the correct boards and debuggers.
+    """
+    @execution_config
+    def register_loader(context: Context, pipeline: ExecutionPipeline) -> None:
+        loader = PyOCDDeviceLoader(target=target, probe=probe, firmware_path=firmware)
+        pipeline.loader = loader
+        context.with_resource(loader)
+    return register_loader
 
 
 @cli.command("cstdin", help="Collector for standard input.",
              cls=PyettaCommand, category='Collectors')
-@collector_common
-@pass_context
-def cstdin(context: Context, parser_name: str, fail_empty: bool,
-           fail_skipped: bool, junit: Optional[Path] = None):
-    cli_state = context.find_object(CliState)
-    loader = cli_state.loader
-
-    try:
-        click.echo(f"Execute test runner for test framework: {parser_name}")
-        test_suites = cli_process_io_collector(sys.stdin, parser_name, loader=loader)
-        result = result_from_test_suites(test_suites, fail_empty, fail_skipped)
-
-        if junit is not None:
-            with open(junit, 'w') as fo:
-                to_xml_report_file(fo, test_suites=test_suites, encoding='utf-8')
-            click.echo(f"Results saved in file {junit}")
-
-        click.echo(f"Execution complete, result={'PASS' if result == 0 else 'FAIL'}.")
-        sys.exit(result)
-    except Exception as ec:
-        click.echo(f"Error executing target: {ec}")
-        sys.exit(1)
+def cstdin() -> ExecutionCallable:
+    """Collector to extract information from standard in. Used if piping the data from the device
+     via a shell pipe.
+    """
+    @execution_config
+    def register_collector(context: Context, pipeline: ExecutionPipeline) -> None:
+        @contextlib.contextmanager
+        def stdin_dummy_context():
+            pipeline.collector = sys.stdin
+            yield
+        context.with_resource(stdin_dummy_context())
+    return register_collector
 
 
 @cli.command("cfile", help="Collector for file output.",
              cls=PyettaCommand, category='Collectors')
 @click.option("--file", help="Path to the file with captured output.",
               type=click.Path(exists=True, path_type=Path, dir_okay=False), required=True)
-@collector_common
-@pass_context
-def cfile(context: Context, parser_name: str, file: Path, fail_empty: bool, fail_skipped: bool,
-          junit: Optional[Path] = None):
-    cli_state = context.find_object(CliState)
-    loader = cli_state.loader
-
-    try:
-        with open(file, "r") as fi:
-            click.echo(f"Execute test runner for test framework: {parser_name}")
-            test_suites = cli_process_io_collector(fi, parser_name, loader=loader)
-        result = result_from_test_suites(test_suites, fail_empty, fail_skipped)
-
-        if junit is not None:
-            with open(junit, 'w') as fo:
-                to_xml_report_file(fo, test_suites=test_suites, encoding='utf-8')
-            click.echo(f"Results saved in file {junit}")
-
-        click.echo(f"Execution complete, result={'PASS' if result == 0 else 'FAIL'}.")
-        sys.exit(result)
-    except Exception as ec:
-        click.echo(f"Error executing target: {ec}")
-        sys.exit(1)
+@click.option("-e", "--encoding", help="file encoding to open the file with.", default='utf-8')
+def cfile(file: Path, encoding: str = 'utf-8') -> ExecutionCallable:
+    @execution_config
+    def configure_pipeline(context: Context, pipeline: ExecutionPipeline) -> None:
+        file_obj = io.open(file=file, mode="r", encoding=encoding)
+        pipeline.collector = file_obj
+        context.with_resource(file_obj)
+    return configure_pipeline
 
 
 @cli.command("cserial", help="Collector for serial based test output.",
@@ -218,27 +228,45 @@ def cfile(context: Context, parser_name: str, file: Path, fail_empty: bool, fail
               required=True, type=int, metavar="BAUD")
 @click.option("--port", help="The serial port to use.",
               type=str, required=True, metavar="PORT")
-@collector_common
-@pass_context
-def cserial(context: Context, parser_name: str, port: str, baud: int, fail_empty: bool,
-            fail_skipped: bool, junit: Optional[Path] = None):
-    cli_state = context.find_object(CliState)
-    loader = cli_state.loader
+def cserial(port: str, baud: int) -> ExecutionCallable:
+    @execution_config
+    def configure_pipeline(context: Context, pipeline: ExecutionPipeline) -> None:
+        serial = cast(Serial(port=port, baudrate=baud, timeout=5), ContextManager[Serial])
+        pipeline.collector = serial
+        context.with_resource(serial)
+    return configure_pipeline
 
-    try:
-        with Serial(port=port, baudrate=baud, timeout=30) as capture:
-            click.echo(f"Execute test runner for test framework: {parser_name}")
-            test_suites = cli_process_io_collector(capture, parser_name,
-                                                   decode='ascii', loader=loader)
-        result = result_from_test_suites(test_suites, fail_empty, fail_skipped)
 
-        if junit is not None:
-            with open(junit, 'w') as fo:
-                to_xml_report_file(fo, test_suites=test_suites, encoding='utf-8')
-            click.echo(f"Results saved in file {junit}")
+@cli.command("punity", help="Parser for the Unity unit test framework.",
+             cls=PyettaCommand, category="Parsers")
+@click.option("--name", help="optional name of this test suite",
+              type=str, metavar="TEST_SUITE_NAME")
+def punity(name: Optional[str] = None) -> ExecutionCallable:
+    @execution_config
+    def configure_pipeline(context: Context, pipeline: ExecutionPipeline) -> None:
+        parser = UnityParser(name)
+        pipeline.parser = parser
+        context.with_resource(parser)
+    return configure_pipeline
 
-        click.echo(f"Execution complete, result={'PASS' if result == 0 else 'FAIL'}.")
-        sys.exit(result)
-    except Exception as ec:
-        click.echo(f"Error executing target: {ec}")
-        sys.exit(1)
+
+@cli.command("ojunitxml", help="JUnit XML output reporter.",
+             cls=PyettaCommand, category="Outputters")
+@click.option("--file", "file_path", help="Output file path.", required=True,
+              type=click.Path(path_type=Path))
+@click.option("--fail-on-skipped", "fail_skipped",
+              help="Returns a failure exit code if any tests are skipped.",
+              is_flag=True, default=True, type=bool)
+@click.option("--fail-on-empty", "fail_empty",
+              help="Returns a failure exit code if no tests were detected.",
+              is_flag=True, default=True, type=bool)
+def ojunitxml(file_path: Path, fail_skipped: bool = True, fail_empty: bool = True) -> \
+        ExecutionCallable:
+    @execution_config
+    def configure_pipeline(context: Context, pipeline: ExecutionPipeline) -> None:
+        reporter = JUnitXmlReporter(file_path=file_path,
+                                    fail_on_skipped=fail_skipped,
+                                    fail_on_empty=fail_empty)
+        pipeline.reporters.append(reporter)
+        context.with_resource(reporter)
+    return configure_pipeline

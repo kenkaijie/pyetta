@@ -5,6 +5,8 @@
 #       - Separate CLI commands from the entry script (do it via a cli folder instead)
 #       - Automate releases to github and publishing to pypi?
 import logging
+import sys
+
 from pyetta.cli.cli import cli
 from pyetta.cli.utils import CliState
 

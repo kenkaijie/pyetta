@@ -4,22 +4,31 @@ from typing import Optional
 from pyocd.core.helpers import ConnectHelper
 from pyocd.flash.file_programmer import FileProgrammer
 
-from pyetta.loaders.interfaces import IDeviceLoader, ProgressCallback
+from pyetta.loaders.interfaces import Loader, ProgressCallback
 
 
-class PyOCDDeviceLoader(IDeviceLoader):
+class PyOCDDeviceLoader(Loader):
     """
     Basic built-in pyOCD loader with minimal configurations. Superclass this if you need to override
     the calls with extra functions.
     """
 
-    def __init__(self, target: str, probe: Optional[str] = None):
+    def __init__(self, target: str, firmware_path: Path, probe: Optional[str] = None):
         self._target = target
+        self._firmware_path = firmware_path
         self._probe = probe
         self._session = ConnectHelper.session_with_chosen_probe(blocking=False,
                                                                 return_first=True,
                                                                 unique_id=self._probe,
                                                                 auto_open=True)
+
+    @property
+    def target(self) -> str:
+        return self._target
+
+    @property
+    def firmware_path(self) -> Path:
+        return self._firmware_path
 
     def __enter__(self):
         self._session.__enter__()
@@ -32,9 +41,9 @@ class PyOCDDeviceLoader(IDeviceLoader):
         self._board = None
         return self._session.__exit__(exc_type, exc_val, exc_tb)
 
-    def load_firmware(self, firmware_path: Path, update_progress: ProgressCallback) -> None:
+    def load_firmware(self, update_progress: ProgressCallback) -> None:
         programmer = FileProgrammer(self._session, progress=update_progress)
-        programmer.program(file_or_path=str(firmware_path))
+        programmer.program(file_or_path=str(self._firmware_path))
 
     def reset_device(self) -> None:
         self._board.target.reset()
