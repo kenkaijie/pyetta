@@ -16,13 +16,21 @@ class Reporter(ABC):
     """
 
     @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        ...
+
+    @abstractmethod
+    def __enter__(self):
+        ...
+
+    @abstractmethod
     def generate_report(self, tests: Optional[Iterable[TestSuite]]) -> int:
         """Generates a report given a iterable of tests.
         
         :param tests: tests to generate the report from.
         :returns: a value indicating the error code to return
         """
-        pass
+        ...
 
     @staticmethod
     def generate_exit_code(test_suites: Iterable[TestSuite], fail_empty: bool, fail_skipped: bool) -> int:
@@ -49,6 +57,12 @@ class Reporter(ABC):
 
 
 class JUnitXmlReporter(Reporter):
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def __enter__(self):
+        pass
 
     def __init__(self, file_path: Optional[Path] = None,
                  fail_on_skipped: bool = False,

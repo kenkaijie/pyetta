@@ -22,6 +22,14 @@ class Parser(ABC):
         self._test_suites: Dict[str, TestSuite] = {}
 
     @abstractmethod
+    def __enter__(self):
+        pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    @abstractmethod
     def feed_data(self, data_chunk: bytes) -> None:
         """Feeds a data chunk to the parser.
 
@@ -57,7 +65,7 @@ class Parser(ABC):
         pass
 
     def _add_parser_error(self, message: Optional[str] = None) -> None:
-        """Generates a error test case and stores it under the reserved special test suite
+        """Generates an error test case and stores it under the reserved special test suite
 
         :param message: Optional message to place in the error.
         """
@@ -85,9 +93,16 @@ class UnityParser(Parser):
 
     def __init__(self, name: Optional[str] = None):
         super(UnityParser, self).__init__()
+        self._name = name
         self._state = UnityParser.ParserState.STARTING
         self._default_test_suite_name = name
         self._test_suites[name] = TestSuite(name=f"{name}")
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
     @property
     def test_suites(self) -> Optional[List[TestSuite]]:
@@ -104,7 +119,7 @@ class UnityParser(Parser):
                 match_dict = UnityParser.REGEX_TEST.match(line).groupdict()
                 test_case = TestCase(match_dict["test_name"], file=match_dict["file_path"],
                                      line=int(match_dict["line_no"]))
-                test_case.stdout = line
+                test_case.stdout = line.strip().strip('\n')
                 message = match_dict.get("test_message", None)
                 if match_dict["test_result"] == "IGNORE":
                     test_case.add_skipped_info(message)

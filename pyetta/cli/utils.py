@@ -29,18 +29,33 @@ class CliState:
 class ExecutionPipeline:
     """The default execution pipeline, this takes encodes the algorithm used to flash and load a system.
     """
-    loader: Optional[Loader] = None
-    collector: Optional[Collector] = None
-    parsers: List[Parser] = field(default_factory=list)
+    loader: Loader = None
+    collector: Collector = None
+    parser: Parser = None
     reporters: List[Reporter] = field(default_factory=list)
+
+    def is_valid(self) -> bool:
+        return self.loader is not None and \
+               self.collector is not None and \
+               self.parser is not None and \
+               len(self.reporters) > 0
 
     def __setattr__(self, key: str, value: Any) -> None:
         if key == "loader" and self.loader is not None:
-            raise ValueError("A loader has already been opened. The CLI only supports a single loader.")
+            raise ValueError("A loader has already been opened. The CLI only supports a single "
+                             "loader.")
         elif key == "collector" and self.collector is not None:
-            raise ValueError("A collector has already been opened. The CLI only supports a single collector.")
+            raise ValueError("A collector has already been opened. The CLI only supports a single "
+                             "collector.")
+        elif key == "parser" and self.parser is not None:
+            raise ValueError("A parser has already been opened. The CLI only supports a single "
+                             "parser.")
         super(ExecutionPipeline, self).__setattr__(key, value)
 
+
+ExecutionCallable = Callable[[Context, ExecutionPipeline], None]
+"""Helper for execution callables. All execution configuration steps should take this form
+"""
 
 # we only get the items that subclass Exception, we will invisibly pass through BaseException items as they are program
 # stopping exceptions.
@@ -48,9 +63,9 @@ __click_exception_types = tuple(obj for _, obj in inspect.getmembers(click.excep
                                 if inspect.isclass(obj) and issubclass(obj, Exception))
 
 
-def execution_item(func: Callable[[Context, ExecutionPipeline], None]) -> Callable[[Context, ExecutionPipeline], None]:
-    """General decorator for the items that go into an execution plan. Encodes click exceptions to ensure that the
-    proper logging information is hidden.
+def execution_config(func: ExecutionCallable) -> ExecutionCallable:
+    """General decorator for the items that go into an execution plan. Encodes click exceptions to
+    ensure that the proper logging information is hidden.
     """
     def execution_function(context: Context, pipeline: ExecutionPipeline) -> None:
         try:

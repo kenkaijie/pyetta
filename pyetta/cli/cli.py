@@ -5,14 +5,18 @@ from typing import Optional, Tuple, Callable, Dict, List, ContextManager, cast
 
 import click
 from click import pass_context, Context, Parameter
+from pyetta.reporters import JUnitXmlReporter
 from serial import Serial
 
-from pyetta.cli.utils import PyettaCommand, PyettaCLIRoot, CliState, ExecutionPipeline, execution_item
+from pyetta.cli.utils import PyettaCommand, PyettaCLIRoot, CliState, ExecutionPipeline, \
+    execution_config, ExecutionCallable
 from pyetta.loaders.pyocd import PyOCDDeviceLoader
 import importlib.util
 import sys
 
 import logging
+
+from pyetta.parsers import UnityParser
 
 if sys.version_info < (3, 10):
     from importlib_metadata import entry_points, EntryPoint
@@ -106,13 +110,13 @@ def cli():
     This command works similar to a pipeline, where we have loaders to load firmware onto a target
     and collectors to collect and parse the output to generate a test result.
 
-    An execution plan requires [0-1] Loaders, [1] Collector, [1-N] Parsers, and [1-N] Reporters
+    An execution plan requires a Loader, a Collector, a Parser, and [1-N] Reporters.
     """
 
 
 @cli.result_callback()
 @pass_context
-def cli_execute_plan(context: Context, setup_functions: List[Callable[[Context, ExecutionPipeline], None]]) -> int:
+def cli_execute_plan(context: Context, setup_functions: List[ExecutionCallable]) -> None:
 
     log.debug("Entering execution phase.")
     plan = ExecutionPipeline()
@@ -120,7 +124,11 @@ def cli_execute_plan(context: Context, setup_functions: List[Callable[[Context, 
     for setup_function in setup_functions:
         setup_function(context, plan)
 
+    if not plan.is_valid():
+        raise ValueError("Execution plan missing 1 or more required stages.")
+
     log.debug("Loaded all execution objects.")
+
     try:
         click.echo(f"Loading firmware {plan.loader.firmware_path} to target {plan.loader.target}")
         with click.progressbar(length=100, label="Flashing", show_eta=True) as progress_bar:
@@ -136,35 +144,29 @@ def cli_execute_plan(context: Context, setup_functions: List[Callable[[Context, 
     try:
         click.echo(f"Executing test runner.")
 
+        plan.loader.start_program()
+
         done = False
         while not done:
             line_bytes = plan.collector.readline()
 
             if line_bytes is not None and len(line_bytes) > 0:
                 click.echo(line_bytes)
-                for parser in plan.parsers:
-                    parser.feed_data(line_bytes)
+                plan.parser.feed_data(line_bytes)
             else:
-                for parser in plan.parsers:
-                    parser.stop()
+                plan.parser.stop()
 
-            done = True
-            for parser in plan.parsers:
-                done &= parser.done
+            done = plan.parser.done
 
     except Exception as ec:
         log.debug("Error collecting data from target.", exc_info=ec)
         raise click.ClickException(str(ec)) from ec
 
-    # aggregate test suites
-
-    test_suites = []
-
     # pass test suites to reports
 
     exit_code = 0
     for reporter in plan.reporters:
-        reporter_exit_code = reporter.generate_report(test_suites)
+        reporter_exit_code = reporter.generate_report(plan.parser.test_suites)
         exit_code = max(reporter_exit_code, exit_code)
 
     context.exit(exit_code)
@@ -178,10 +180,11 @@ def cli_execute_plan(context: Context, setup_functions: List[Callable[[Context, 
               type=str, metavar="PROBE_ID")
 @click.option("--target", help="Chip target to use, must match the target connected to the host",
               required=True, type=str, metavar="TARGET_MCU")
-def lpyocd(firmware: Path, target: str, probe: Optional[str] = None) -> Callable[[Context, ExecutionPipeline], None]:
-    """Loader that uses pyocd to service the flashing of firmware to the board. Note for this loader to work, pyocd
-    must be loaded with the correct boards and debuggers."""
-    @execution_item
+def lpyocd(firmware: Path, target: str, probe: Optional[str] = None) -> ExecutionCallable:
+    """Loader that uses pyocd to service the flashing of firmware to the board. Note for this loader
+    to work, pyocd must be loaded with the correct boards and debuggers.
+    """
+    @execution_config
     def register_loader(context: Context, pipeline: ExecutionPipeline) -> None:
         loader = PyOCDDeviceLoader(target=target, probe=probe, firmware_path=firmware)
         pipeline.loader = loader
@@ -189,11 +192,13 @@ def lpyocd(firmware: Path, target: str, probe: Optional[str] = None) -> Callable
     return register_loader
 
 
-@cli.command("cstdin", help="Collector for standard input.", cls=PyettaCommand, category='Collectors')
-def cstdin() -> Callable[[Context, ExecutionPipeline], None]:
-    """Collector to extract information from standard in. Used if piping the data from the device via a shell pipe.
+@cli.command("cstdin", help="Collector for standard input.",
+             cls=PyettaCommand, category='Collectors')
+def cstdin() -> ExecutionCallable:
+    """Collector to extract information from standard in. Used if piping the data from the device
+     via a shell pipe.
     """
-    @execution_item
+    @execution_config
     def register_collector(context: Context, pipeline: ExecutionPipeline) -> None:
         @contextlib.contextmanager
         def stdin_dummy_context():
@@ -208,8 +213,8 @@ def cstdin() -> Callable[[Context, ExecutionPipeline], None]:
 @click.option("--file", help="Path to the file with captured output.",
               type=click.Path(exists=True, path_type=Path, dir_okay=False), required=True)
 @click.option("-e", "--encoding", help="file encoding to open the file with.", default='utf-8')
-def cfile(file: Path, encoding: str = 'utf-8') -> Callable[[Context, ExecutionPipeline], None]:
-    @execution_item
+def cfile(file: Path, encoding: str = 'utf-8') -> ExecutionCallable:
+    @execution_config
     def configure_pipeline(context: Context, pipeline: ExecutionPipeline) -> None:
         file_obj = io.open(file=file, mode="r", encoding=encoding)
         pipeline.collector = file_obj
@@ -223,10 +228,45 @@ def cfile(file: Path, encoding: str = 'utf-8') -> Callable[[Context, ExecutionPi
               required=True, type=int, metavar="BAUD")
 @click.option("--port", help="The serial port to use.",
               type=str, required=True, metavar="PORT")
-def cserial(port: str, baud: int) -> Callable[[Context, ExecutionPipeline], None]:
-    @execution_item
+def cserial(port: str, baud: int) -> ExecutionCallable:
+    @execution_config
     def configure_pipeline(context: Context, pipeline: ExecutionPipeline) -> None:
-        serial = cast(Serial(port=port, baudrate=baud), ContextManager[Serial])
+        serial = cast(Serial(port=port, baudrate=baud, timeout=5), ContextManager[Serial])
         pipeline.collector = serial
         context.with_resource(serial)
+    return configure_pipeline
+
+
+@cli.command("punity", help="Parser for the Unity unit test framework.",
+             cls=PyettaCommand, category="Parsers")
+@click.option("--name", help="optional name of this test suite",
+              type=str, metavar="TEST_SUITE_NAME")
+def punity(name: Optional[str] = None) -> ExecutionCallable:
+    @execution_config
+    def configure_pipeline(context: Context, pipeline: ExecutionPipeline) -> None:
+        parser = UnityParser(name)
+        pipeline.parser = parser
+        context.with_resource(parser)
+    return configure_pipeline
+
+
+@cli.command("ojunitxml", help="JUnit XML output reporter.",
+             cls=PyettaCommand, category="Outputters")
+@click.option("--file", "file_path", help="Output file path.", required=True,
+              type=click.Path(path_type=Path))
+@click.option("--fail-on-skipped", "fail_skipped",
+              help="Returns a failure exit code if any tests are skipped.",
+              is_flag=True, default=True, type=bool)
+@click.option("--fail-on-empty", "fail_empty",
+              help="Returns a failure exit code if no tests were detected.",
+              is_flag=True, default=True, type=bool)
+def ojunitxml(file_path: Path, fail_skipped: bool = True, fail_empty: bool = True) -> \
+        ExecutionCallable:
+    @execution_config
+    def configure_pipeline(context: Context, pipeline: ExecutionPipeline) -> None:
+        reporter = JUnitXmlReporter(file_path=file_path,
+                                    fail_on_skipped=fail_skipped,
+                                    fail_on_empty=fail_empty)
+        pipeline.reporters.append(reporter)
+        context.with_resource(reporter)
     return configure_pipeline
