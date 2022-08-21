@@ -6,6 +6,8 @@ on:
 jobs:
   Build_And_Test:
 
+    name: Build and Test
+    
     runs-on: ubuntu-latest
 
     steps:
