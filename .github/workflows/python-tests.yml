@@ -38,3 +38,6 @@ jobs:
           token: ${{secrets.CODECOV_TOKEN}}
           files: coverage_report.xml
           fail_ci_if_error: true
+      - name: Docs
+        run: sphinx-build docs dist/docs
+        
