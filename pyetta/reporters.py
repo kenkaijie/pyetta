@@ -25,15 +25,16 @@ class Reporter(ABC):
 
     @abstractmethod
     def generate_report(self, tests: Optional[Iterable[TestSuite]]) -> int:
-        """Generates a report given a iterable of tests.
-        
+        """Generates a report given an iterable of tests.
+
         :param tests: tests to generate the report from.
         :returns: a value indicating the error code to return
         """
         ...
 
     @staticmethod
-    def generate_exit_code(test_suites: Iterable[TestSuite], fail_empty: bool, fail_skipped: bool) -> int:
+    def generate_exit_code(test_suites: Iterable[TestSuite], fail_empty: bool,
+                           fail_skipped: bool) -> int:
         """Inspects test suites to determine the best exit code to return.
 
         :param test_suites: The test suites to check over.
@@ -64,7 +65,7 @@ class JUnitXmlReporter(Reporter):
     def __enter__(self):
         pass
 
-    def __init__(self, file_path: Optional[Path] = None,
+    def __init__(self, file_path: Path,
                  fail_on_skipped: bool = False,
                  fail_on_empty: bool = False) -> None:
         self._output_filepath = file_path
@@ -73,8 +74,11 @@ class JUnitXmlReporter(Reporter):
         super().__init__()
 
     def generate_report(self, tests: Optional[Iterable[TestSuite]]) -> int:
-        log.debug(f"Generating JUnit XML log for tests at f{self._output_filepath}.")
+        log.debug(
+            f"Generating JUnit XML log for tests at f{self._output_filepath}.")
         with open(self._output_filepath, 'w') as fo:
             to_xml_report_file(fo, test_suites=tests, encoding='utf-8')
 
-        return self.generate_exit_code(tests, fail_skipped=self._fail_on_skipped, fail_empty=self._fail_on_empty)
+        return self.generate_exit_code(tests,
+                                       fail_skipped=self._fail_on_skipped,
+                                       fail_empty=self._fail_on_empty)
