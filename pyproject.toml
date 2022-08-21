@@ -3,43 +3,45 @@ name = "pyetta"
 version = "0.0.4dev0"
 description = "Tooling for automated testing on embedded bare metal platforms."
 authors = [
-    {name = "Kenneth Ng", email = "ngkaijie@hotmail.com"}
+    { name = "Kenneth Ng", email = "ngkaijie@hotmail.com" }
 ]
-maintainers= [
-    {name = "Kenneth Ng", email = "ngkaijie@hotmail.com"}
+maintainers = [
+    { name = "Kenneth Ng", email = "ngkaijie@hotmail.com" }
 ]
 requires-python = ">=3.7"
-license = {text = "MIT License"}
+license = { text = "MIT License" }
 readme = "readme.rst"
 dependencies = [
-	"pyserial",
-	"click>=8.0",
-	"pyocd>=0.34",
-	"colorama",
-	"prettytable",
-	"junit-xml"
+    "pyserial",
+    "click>=8.0",
+    "pyocd>=0.34",
+    "junit-xml"
 ]
 classifiers = [
-	"Development Status :: 1 - Planning",
-	"Environment :: Console",
-	"License :: OSI Approved :: MIT License",
-	"Natural Language :: English",
-	"Programming Language :: Python :: 3.7",
-	"Programming Language :: Python :: 3.8",
-	"Programming Language :: Python :: 3.9",
-	"Topic :: Software Development :: Embedded Systems",
-	"Topic :: Software Development :: Testing",
-	"Topic :: System :: Hardware",
-	"Topic :: Utilities"
+    "Development Status :: 1 - Planning",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Software Development :: Embedded Systems",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Hardware",
+    "Topic :: Utilities"
 ]
 
 [project.optional-dependencies]
 dev = [
-	"sphinx",
-	"sphinx-rtd-theme",
-	"sphinxcontrib-mermaid",
-	"tomli",
-	"pytest",
+    "sphinx",
+    "sphinx-rtd-theme",
+    "sphinxcontrib-mermaid",
+    "myst-parser",
+    "tomli",
+    "pytest",
+    "pytest-cov",
+    "flake8",
+    "flake8-pyproject"
 ]
 
 [project.urls]
@@ -48,6 +50,11 @@ documentation = "https://pyetta.readthedocs.io/"
 
 [project.scripts]
 pyetta = "pyetta.cli_entry:main"
+
+[tool.flake8]
+max-line-length = 99
+exclude = "venv"
+count = true
 
 [build-system]
 requires = ["setuptools"]

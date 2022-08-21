@@ -18,7 +18,7 @@ project = 'pyetta'
 copyright = 'Copyright 2022 Kenneth Ng'
 author = 'Kenneth Ng'
 
-with open("pyproject.toml", "rb") as pyproject_file:
+with open("../pyproject.toml", "rb") as pyproject_file:
     values = tomli.load(pyproject_file)
     # don't catch exception here, if this fails it means something was moved.
     version = values["project"]["version"]
@@ -37,11 +37,12 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.imgmath',
     'sphinx.ext.todo',
-    'sphinxcontrib.mermaid'
+    'sphinxcontrib.mermaid',
+    'myst_parser'
 ]
 
 # Include files
-include_patterns = ['*.rst', 'docs/*.rst', 'pyetta/**/*.py']
+include_patterns = ['*.rst']
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -59,12 +60,15 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['./docs/css']
+html_static_path = ['./css']
 
 html_css_files = [
     'overrides.css',
 ]
 
-html_logo = 'docs/images/logo.png'
-html_favicon = 'docs/images/favicon.png'
+html_logo = 'images/logo.png'
+html_favicon = 'images/favicon.png'
 
+# -- myst_parser configuration ---------------------------------------------------
+
+myst_heading_anchors = 3

@@ -1,5 +1,4 @@
-
-from junit_xml import TestCase, TestSuite
+from junit_xml import TestCase
 
 from pyetta.parsers import UnityParser
 
@@ -23,12 +22,11 @@ def assert_test_case_equivalent(a: TestCase, b: TestCase) -> None:
             elif callable(val_a) and callable(val_b):
                 continue
             else:
-                # raise an assert here due to mismatch, thus they are not equal
+                # raise assertion here due to mismatch, thus they are not equal
                 assert False
 
 
 def test_parse_test_pass_information():
-
     test_line = b'/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS'
 
     expected_test_case = TestCase(name="test_led_on_command_turns_on_led",
@@ -62,11 +60,14 @@ def test_parse_test_output():
     ]
 
     expected_test_cases = [
-        TestCase(name="test_led_on_command_turns_on_led", file="/mypath/foo.c", line=19,
+        TestCase(name="test_led_on_command_turns_on_led", file="/mypath/foo.c",
+                 line=19,
                  stdout=test_output[0].decode('ascii')),
-        TestCase(name="test_led_off_command_turns_off_led", file="/mypath/foo.c", line=20,
+        TestCase(name="test_led_off_command_turns_off_led",
+                 file="/mypath/foo.c", line=20,
                  stdout=test_output[1].decode('ascii')),
-        TestCase(name="test_adder_adds_correctly", file="/mypath/foo.c", line=23,
+        TestCase(name="test_adder_adds_correctly", file="/mypath/foo.c",
+                 line=23,
                  stdout=test_output[2].decode('ascii')),
     ]
 
