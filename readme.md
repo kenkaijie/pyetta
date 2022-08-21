@@ -49,13 +49,13 @@ the pyetta package.
 $ pip uninstall --yes pyetta
 ```
 
-## Packaging
+## Linting and Analysis
 
-Packing is done using python's build command. The command below will build the
-package for deployment to a python package repository.
+Linting and static analysis is done using `flake8`. The command below can be
+used to run the linter.
 
 ```shell
-$ python -m build
+$ flake8 --count --show-source --statistics
 ```
 
 ## Tests and Coverage
@@ -80,3 +80,12 @@ $ sphinx-build docs dist/docs
 
 Running the command above will generate the documentation for this project and
 save it to a folder `dist/docs`.
+
+## Packaging
+
+Packing is done using python's build command. The command below will build the
+package for deployment to a python package repository.
+
+```shell
+$ python -m build
+```
