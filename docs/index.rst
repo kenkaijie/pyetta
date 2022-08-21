@@ -13,12 +13,12 @@ See the table of contents for documentation related to this project.
    :numbered:
    :hidden:
 
-    cli
-    loaders
-    collectors
-    parsers
-    reporters
-    plugin_development
-    developers
-    styling
-    license
+   cli
+   loaders
+   collectors
+   parsers
+   reporters
+   plugin_development
+   developers
+   styling
+   license

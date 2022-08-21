@@ -23,20 +23,12 @@ with open("../pyproject.toml", "rb") as pyproject_file:
     # don't catch exception here, if this fails it means something was moved.
     version = values["project"]["version"]
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autosectionlabel',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.imgmath',
-    'sphinx.ext.todo',
     'sphinxcontrib.mermaid',
     'myst_parser'
 ]
