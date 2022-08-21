@@ -38,7 +38,7 @@ dev = [
     "sphinxcontrib-mermaid",
     "myst-parser",
     "tomli",
-    "pytest",
+    "pytest>=6.0",
     "pytest-cov",
     "flake8",
     "flake8-pyproject"
@@ -55,6 +55,10 @@ pyetta = "pyetta.cli_entry:main"
 max-line-length = 99
 exclude = "venv"
 count = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--cov=pyetta --cov=examples"
 
 [build-system]
 requires = ["setuptools"]

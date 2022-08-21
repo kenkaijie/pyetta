@@ -23,7 +23,7 @@ jobs:
           flake8 --count --exit-zero --statistics
       - name: Run test with coverage
         run: >
-          pytest --cov pyetta --cov-report xml:coverage_report.xml
+          pytest --cov-report xml:coverage_report.xml
           --junitxml=unit_test_result.xml
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
