@@ -1,14 +1,16 @@
+import importlib
 import shutil
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
-from pyetta.cli.cli import cli
+# this must be imported as a module
+import pyetta.cli.cli as pyetta_cli
 
 
 @pytest.fixture()
-def examples_dir(tmp_path) -> Path:
+def tmp_examples_dir(tmp_path) -> Path:
     """Creates and copies the plugin samples folder into a temp directory.
     """
     real_examples_dir = Path(__file__).parent.joinpath("../examples").resolve()
@@ -22,10 +24,36 @@ def examples_dir(tmp_path) -> Path:
     return tmp_path
 
 
-def test_load_plugins_via_extras_should_show_in_help(examples_dir: Path):
+@pytest.fixture(autouse=True)
+def unload_plugins() -> None:
+    """Used for reloading the plugins module between tests.
+    """
+    importlib.reload(pyetta_cli)
+
+
+@pytest.fixture
+def cli_runner(tmp_examples_dir) -> CliRunner:
     runner = CliRunner()
-    result = runner.invoke(cli,
-                           [f'--extras={examples_dir / "foo_plugin.py"}',
-                            '--help'])
+    with runner.isolated_filesystem(tmp_examples_dir):
+        yield runner
+
+
+def test_load_plugins_via_extras_should_show_in_help(cli_runner: CliRunner,
+                                                     tmp_examples_dir: Path):
+    result = cli_runner.invoke(
+        pyetta_cli.cli,
+        [f'--extras={tmp_examples_dir / "foo_plugin.py"}',
+         '--help'])
     assert result.exit_code == 0
     assert 'lfoo' in result.output
+
+
+def test_load_plugins_filtered_should_not_show_in_help(cli_runner: CliRunner,
+                                                       tmp_examples_dir: Path):
+    result = cli_runner.invoke(
+        pyetta_cli.cli,
+        ['--exclude-plugins=foo_plugin',
+         f'--extras={tmp_examples_dir / "foo_plugin.py"}',
+         '--help'])
+    assert result.exit_code == 0
+    assert 'lfoo' not in result.output

@@ -7,7 +7,7 @@ jobs:
   Build_And_Test:
 
     name: Build and Test
-    
+
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +22,7 @@ jobs:
           pip install .[dev]
       - name: Linting
         run: |
-          flake8 --count --exit-zero --statistics
+          flake8 --exit-zero
       - name: Run test with coverage
         run: >
           pytest --cov-report xml:coverage_report.xml

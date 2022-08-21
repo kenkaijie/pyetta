@@ -19,8 +19,7 @@ root
 |
 |---docs: Documentation for this project
 |
-|---examples: Example snippets for using the library.
-|   |---plugins: Examples relating to plugin development.
+|---examples: Examples relating to plugin development.
 |
 |---pyetta: Project sources
 |
@@ -55,7 +54,7 @@ Linting and static analysis is done using `flake8`. The command below can be
 used to run the linter.
 
 ```shell
-$ flake8 --count --show-source --statistics
+$ flake8 --show-source
 ```
 
 ## Tests and Coverage
@@ -64,7 +63,7 @@ Tests for this project use `pytest` to operate. You can generate both unit test
 results and coverage results by running the following command.
 
 ```shell
-$ pytest --cov=pyetta 
+$ pytest
 ```
 
 You can add `--cov-report html` to generate a html coverage report.

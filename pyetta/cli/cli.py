@@ -99,10 +99,10 @@ def load_plugins(_: click.Group, context: Context) -> None:
               help="Sets verbosity. Can be repeated up to 3 times.",
               count=True, callback=setup_logging, required=False, default=0,
               is_eager=True, expose_value=False)
-@click.option("-x", "--exclude-plugins",
+@click.option("--exclude-plugins",
               help="Plugin to exclude from loading, supports multiples.",
               required=False, type=str, callback=setup_ignores, multiple=True,
-              is_eager=True, expose_value=False)
+              is_eager=True, expose_value=False, metavar="MODULE_NAME")
 @click.option("--extras", help="Path of an extras module to load.",
               required=False,
               type=click.Path(exists=True, path_type=Path, dir_okay=False),

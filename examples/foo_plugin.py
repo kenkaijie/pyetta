@@ -3,7 +3,11 @@ into the pyetta cli.
 
 Some comments are peppered around this file for demonstrating the features. For
 more information, see the documentation.
+
+This file can be both included as part of a module via the ``--extras`` flag,
+or via the entrypoint by using the pyetta.plugin entry point group.
 """
+
 import click
 from click import Context
 
@@ -14,7 +18,7 @@ from pyetta.loaders import Loader
 
 
 @click.command("lfoo",
-               help="Loader for el pepe",
+               help="Loader for the foo.",
                cls=PyettaCommand, category='Loaders',
                plugin_name="foo_plugin")
 def lfoo() -> ExecutionCallable:

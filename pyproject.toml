@@ -55,6 +55,7 @@ pyetta = "pyetta.cli_entry:main"
 max-line-length = 99
 exclude = "venv"
 count = true
+statistics = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
