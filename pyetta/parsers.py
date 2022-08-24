@@ -16,17 +16,11 @@ class Parser(ABC):
     """
 
     RESERVED_TEST_SUITE = "pyetta.parser"
+    """Special test suite for pyetta parser specific errors. If any parser encounters an error,
+    they should create a failed test case within the suite."""
 
     def __init__(self):
         self._test_suites: Dict[str, TestSuite] = {}
-
-    @abstractmethod
-    def __enter__(self):
-        pass
-
-    @abstractmethod
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
 
     @abstractmethod
     def feed_data(self, data_chunk: bytes) -> None:
@@ -52,15 +46,15 @@ class Parser(ABC):
     @property
     @abstractmethod
     def done(self) -> bool:
-        """Gets whether the parser is done or no.
+        """Gets whether the parser is done or not.
 
-        :returns: True is parser is done (parser errors are communicated via
+        :returns: True if parser is done (parser errors are communicated via
                   the test suites).
         """
 
     @property
     @abstractmethod
-    def test_suites(self) -> Optional[List[TestSuite]]:
+    def test_suites(self) -> List[TestSuite]:
         """The parsed test suites up to this point. Note this may be incomplete
         if called before the parser is stopped.
 
@@ -88,7 +82,6 @@ class Parser(ABC):
 
 
 class UnityParser(Parser):
-    """A basic parser for the unity unit testing program."""
 
     REGEX_TEST = re.compile(r"^(?P<file_path>.*?):"
                             r"(?P<line_no>\d*?):"
@@ -97,25 +90,24 @@ class UnityParser(Parser):
                             r"(?::(?P<test_message>.*?))?$")
     REGEX_FINAL_LINE = re.compile(r"^(OK|FAIL)")
 
-    class ParserState(IntEnum):
+    class _ParserState(IntEnum):
+        """Tracks the state of the unity parser."""
         STARTING = 0
         DONE = 1
 
-    def __str__(self):
-        return f"{self.__name__}"
-
     def __init__(self, name: Optional[str] = None):
+        """A basic parser for the unity unit testing program.
+
+        :param name: Name of the test suite to create if test cases are found outside test suites.
+        """
         super(UnityParser, self).__init__()
         self._name = name
-        self._state = UnityParser.ParserState.STARTING
+        self._state = UnityParser._ParserState.STARTING
         self._default_test_suite_name = name
         self._test_suites[name] = TestSuite(name=f"{name}")
 
-    def __enter__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+    def __str__(self):
+        return f"{self.__name__}"
 
     @property
     def test_suites(self) -> Optional[List[TestSuite]]:
@@ -123,7 +115,7 @@ class UnityParser(Parser):
 
     @property
     def done(self) -> bool:
-        return self._state == UnityParser.ParserState.DONE
+        return self._state == UnityParser._ParserState.DONE
 
     def feed_data(self, data_chunk: bytes) -> None:
         try:
@@ -145,19 +137,19 @@ class UnityParser(Parser):
                     self._default_test_suite_name].test_cases.append(test_case)
 
             elif UnityParser.REGEX_FINAL_LINE.match(line):
-                self._transition_state(UnityParser.ParserState.DONE)
+                self._transition_state(UnityParser._ParserState.DONE)
         except Exception as ec:
             self._add_parser_error(f"{ec.__name__} raised with message: {ec}.")
-            self._transition_state(UnityParser.ParserState.DONE)
+            self._transition_state(UnityParser._ParserState.DONE)
 
     def stop(self, forced: bool = False) -> None:
-        if self._state != UnityParser.ParserState.DONE:
-            self._transition_state(UnityParser.ParserState.DONE)
+        if self._state != UnityParser._ParserState.DONE:
+            self._transition_state(UnityParser._ParserState.DONE)
             if forced:
                 self._add_parser_error(
                     "Parser stopped before unit test output stopped.")
 
-    def _transition_state(self, new_state: ParserState) -> None:
+    def _transition_state(self, new_state: _ParserState) -> None:
         if new_state != self._state:
             log.debug(
                 f"State transition from {self._state} -> {new_state}.")

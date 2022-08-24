@@ -10,7 +10,13 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import sys
+from pathlib import Path
+
 import tomli
+
+python_source_path = Path("..").resolve()
+sys.path.append(str(python_source_path))
 
 # -- Project information -----------------------------------------------------
 
@@ -29,12 +35,11 @@ with open("../pyproject.toml", "rb") as pyproject_file:
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
     'sphinxcontrib.mermaid',
     'myst_parser'
 ]
-
-# Include files
-include_patterns = ['*.rst']
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -46,7 +51,7 @@ html_theme = "sphinx_rtd_theme"
 html_theme_options = {
     'logo_only': True,
     'display_version': True,
-    'navigation_depth': 3,
+    'navigation_depth': 3
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -64,3 +69,11 @@ html_favicon = 'images/favicon.png'
 # -- myst_parser configuration ---------------------------------------------------
 
 myst_heading_anchors = 3
+
+# -- autodoc configuration ---------------
+
+autodoc_member_order = 'bysource'
+
+# -- intersphinx configuration -----------
+
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}

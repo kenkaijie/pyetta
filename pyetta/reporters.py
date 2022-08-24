@@ -12,23 +12,15 @@ log = logging.getLogger("pyetta.reporters")
 
 
 class Reporter(ABC):
-    """Base interface for a reporter
+    """Base interface for a reporter.
     """
-
-    @abstractmethod
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        ...
-
-    @abstractmethod
-    def __enter__(self):
-        ...
 
     @abstractmethod
     def generate_report(self, tests: Optional[Iterable[TestSuite]]) -> int:
         """Generates a report given an iterable of tests.
 
         :param tests: tests to generate the report from.
-        :returns: a value indicating the error code to return
+        :returns: a value indicating the error code to return.
         """
         ...
 
@@ -59,15 +51,16 @@ class Reporter(ABC):
 
 class JUnitXmlReporter(Reporter):
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-    def __enter__(self):
-        pass
-
     def __init__(self, file_path: Path,
                  fail_on_skipped: bool = False,
                  fail_on_empty: bool = False) -> None:
+        """JUnit XML style reporter. Produces JUnit XML documentation that can be parsed by
+        consumers which support this format.
+
+        :param file_path: The output file to write the xml contents to.
+        :param fail_on_skipped: Set to true if skipped tests should count as failures.
+        :param fail_on_empty: Set to true if the lack of any tests cases results in a failure.
+        """
         self._output_filepath = file_path
         self._fail_on_skipped = fail_on_skipped
         self._fail_on_empty = fail_on_empty
