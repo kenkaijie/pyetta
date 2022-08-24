@@ -10,40 +10,33 @@ from pyocd.flash.file_programmer import FileProgrammer
 
 log = logging.getLogger("pyetta.loaders")
 
-ProgressCallback = Callable[[int], None]
-"""Function signature for a delegate to update progress."""
-
 
 class Loader(ABC):
 
     @abstractmethod
-    def __enter__(self):
-        """Starts the loader.
-        """
-        pass
-
-    @abstractmethod
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-    @abstractmethod
     def load_to_device(self,
-                       progress: Optional[ProgressCallback] = None) -> None:
-        """Loads the target data into the device.
+                       progress: Optional[Callable[[int], None]] = None) -> None:
+        """Loads the target data into the device. Optionally can report progress to a callback if
+        one is given.
 
         :param progress: Callback to allow progress to be reported. Callback
                          should take in a single int representing the
                          percentage completion [0-100].
         """
-        pass
+        ...
 
     @abstractmethod
     def reset_device(self) -> None:
-        pass
+        """Resets the device. This can be either a software or hardware reset depending on the
+        implementation. The expected result of this reset is that all internal states of the device
+        are reset into their default values on startup."""
+        ...
 
     @abstractmethod
-    def start_program(self):
-        pass
+    def start_program(self) -> None:
+        """Starts the loaded program from the beginning. Each subsequent run of the program should
+        have its state unaffected by previous run."""
+        ...
 
 
 class PyOCDDeviceLoader(Loader):
@@ -84,7 +77,7 @@ class PyOCDDeviceLoader(Loader):
             return self._session.__exit__(exc_type, exc_val, exc_tb)
 
     def load_to_device(self,
-                       progress: Optional[ProgressCallback] = None) -> None:
+                       progress: Optional[Callable[[int], None]] = None) -> None:
         programmer = FileProgrammer(self._session, progress=progress)
         programmer.program(file_or_path=str(self._firmware_path))
 
@@ -97,15 +90,11 @@ class PyOCDDeviceLoader(Loader):
 
 
 class DummyLoader(Loader):
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+    """Dummy loader used in place where no loader is required. Performs no actions when loaded and
+    immediately returns when a load is requested."""
 
     def load_to_device(self,
-                       progress: Optional[ProgressCallback] = None) -> None:
+                       progress: Optional[Callable[[int], None]] = None) -> None:
         if progress is not None:
             progress(100)
 

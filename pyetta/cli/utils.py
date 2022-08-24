@@ -97,6 +97,12 @@ class PyettaCommand(click.Command):
 
     def __init__(self, category: str = "Commands",
                  plugin_name: Optional[str] = None, *args, **kwargs):
+        """
+
+        :param category: The category this plugin belongs to. This shows up in the help page.
+        :param plugin_name: Name given to the plugin loading this command. Used in the help
+                            function to help with filtering.
+        """
         self.category = category
         self.plugin_name = plugin_name
         super(PyettaCommand, self).__init__(*args, **kwargs)

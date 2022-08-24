@@ -27,28 +27,28 @@ log = logging.getLogger("pyetta.cli")
 
 def add_command_to_cli(command: PyettaCommand,
                        command_name: Optional[str] = None) -> None:
-    """Registers a command to the CLI, this is the recommended way to inject in
-    additional commands as the mechanisms may change in future versions.
+    """Registers a command to the CLI, this is the recommended way to inject
+    in additional commands as the mechanisms may change in future versions.
 
     :param command: The command to register
     :param command_name: Alias to call the command.
     """
     log.debug(
-        f"Loading command '{command.name}' as '{command_name or command.name}' "
+        f"Loading '{command.name}' as '{command_name or command.name}' "
         f"from plugin '{command.plugin_name}'.")
     cli.add_command(command, command_name)
 
 
 def setup_ignores(context: Context, _: Parameter,
                   ignores: Optional[Tuple[str]] = None) -> None:
-    if isinstance(context.obj, CliState):
-        context.obj.plugins_filter = set(ignores)
+    context.ensure_object(CliState)
+    context.obj.plugins_filter = set(ignores)
 
 
 def setup_extras(context: Context, _: Parameter,
                  extras: Optional[Path] = None) -> None:
-    if isinstance(context.obj, CliState):
-        context.obj.extras = extras
+    context.ensure_object(CliState)
+    context.obj.extras = extras
 
 
 def setup_logging(_: Context, __: Parameter, verbose: int):
@@ -57,14 +57,10 @@ def setup_logging(_: Context, __: Parameter, verbose: int):
 
 
 def load_plugins(_: click.Group, context: Context) -> None:
-    """Plugin loader for pyetta, loads all modules in scope with the pyetta_* naming format.
-    Also loads the extras provided by the --extras flag.
+    """Plugin loader for pyetta, loads all modules in scope with the pyetta_*
+    naming format. Also loads the extras provided by the --extras flag.
     """
-    extras = None
-    plugins_filter = None
-    if isinstance(context.obj, CliState):
-        extras = context.obj.extras
-        plugins_filter = context.obj.plugins_filter
+    context.ensure_object(CliState)
 
     plugin_entry_points: Dict[str, Callable[[], None]] = dict()
 
@@ -73,7 +69,7 @@ def load_plugins(_: click.Group, context: Context) -> None:
         load_plugin = entry_point.load()
         plugin_entry_points[entry_point.module] = load_plugin
 
-    if extras is not None:
+    if context.obj.extras is not None:
         module_name = context.obj.extras.stem
         spec = importlib.util.spec_from_file_location(module_name,
                                                       context.obj.extras)
@@ -83,7 +79,7 @@ def load_plugins(_: click.Group, context: Context) -> None:
                                                    lambda: None)
 
     for name, load_function in plugin_entry_points.items():
-        if name in plugins_filter:
+        if name in context.obj.plugins_filter:
             log.warning(f"Skipped loading plugin '{name}'.")
             continue
         log.debug(f"Loading plugin '{name}'.")
@@ -91,9 +87,9 @@ def load_plugins(_: click.Group, context: Context) -> None:
             load_function()
         except Exception as ec:
             raise ImportError(
-                f"Error occurred while executing plugin {name}'s load_plugin entry point. "
-                f"If you cannot uninstall the plugin, use the -x flag to ignore loading of the"
-                f"offending plugin.") from ec
+                f"Error occurred while executing plugin {name}'s load_plugin "
+                "entry point. If you cannot uninstall the plugin, use the -x "
+                "flag to ignore loading of the offending plugin.") from ec
 
 
 @click.group(chain=True, cls=PyettaCLIRoot, plugin_handler=load_plugins,
@@ -103,10 +99,10 @@ def load_plugins(_: click.Group, context: Context) -> None:
               help="Sets verbosity. Can be repeated up to 3 times.",
               count=True, callback=setup_logging, required=False, default=0,
               is_eager=True, expose_value=False)
-@click.option("-x", "--exclude-plugins",
-              help="Name of a plugin to exclude from loading, supports multiples.",
+@click.option("--exclude-plugins",
+              help="Plugin to exclude from loading, supports multiples.",
               required=False, type=str, callback=setup_ignores, multiple=True,
-              is_eager=True, expose_value=False)
+              is_eager=True, expose_value=False, metavar="MODULE_NAME")
 @click.option("--extras", help="Path of an extras module to load.",
               required=False,
               type=click.Path(exists=True, path_type=Path, dir_okay=False),
@@ -115,13 +111,15 @@ def load_plugins(_: click.Group, context: Context) -> None:
 def cli():
     """Python Embedded Test Toolbox and Automation
 
-    Simple tooling to automate running tests runners on an embedded board and collecting
-    output for a CI/CD server to consume.
+    Simple tooling to automate running tests runners on an embedded board and
+    collecting output for a CI/CD server to consume.
 
-    This command works similar to a pipeline, where we have loaders to load firmware onto a target
-    and collectors to collect and parse the output to generate a test result.
+    This command works similar to a pipeline, where we have loaders to load
+    firmware onto a target and collectors to collect and parse the output to
+    generate a test result.
 
-    An execution plan requires a Loader, a Collector, a Parser, and [1-N] Reporters.
+    An execution plan requires a Loader, a Collector, a Parser, and [1-N]
+    Reporters.
     """
 
 
@@ -214,8 +212,8 @@ def lpyocd(firmware: Path, target: str,
 @cli.command("cstdin", help="Collector for standard input.",
              cls=PyettaCommand, category='Collectors')
 def cstdin() -> ExecutionCallable:
-    """Collector to extract information from standard in. Used if piping the data from the device
-     via a shell pipe.
+    """Collector to extract information from standard in. Used if piping the
+    data from the device via a shell pipe.
     """
 
     @execution_config

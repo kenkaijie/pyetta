@@ -6,19 +6,37 @@ Homepage
 
     Note this document is for version |version|.
 
-See the table of contents for documentation related to this project.
+This is the documentation for the pyetta project.
+
+Quick Links
+============
+
+The full api and documentation indices can be found below:
+
+- :ref:`genindex`
+- :ref:`modindex`
 
 .. toctree::
-   :glob:
-   :numbered:
-   :hidden:
+    :caption: General
+    :hidden:
 
-   cli
-   loaders
-   collectors
-   parsers
-   reporters
-   plugin_development
-   developers
-   styling
-   license
+    self
+    cli
+    plugin_development
+    developers
+
+.. toctree::
+    :caption: API Reference
+    :hidden:
+
+    loaders
+    collectors
+    parsers
+    reporters
+
+.. toctree::
+    :caption: Miscellaneous
+    :hidden:
+
+    styling
+    license
