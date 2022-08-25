@@ -54,19 +54,34 @@ Linting and static analysis is done using `flake8`. The command below can be
 used to run the linter.
 
 ```shell
-$ flake8 --show-source
+$ flake8 
 ```
 
 ## Tests and Coverage
 
-Tests for this project use `pytest` to operate. You can generate both unit test
-results and coverage results by running the following command.
+Tests for this project use `tox` with `pytest` and `flake8` to operate. You can 
+check linting, run unit tests, and generate coverage by running the following 
+command.
 
 ```shell
-$ pytest
+$ tox
 ```
 
-You can add `--cov-report html` to generate a html coverage report.
+The command is optimised for automated testing, so the output may not be 
+suitable for interpretation by developers.
+
+### Local Testing
+
+As the `tox` call is used for final testing and preparing a branch for 
+submission. For a quicker turn around during development, you can simply 
+`pytest` and `flake8` without the use of tox.
+
+> The arguments for the 2 functions are optional.
+
+```shell
+$ flake8 --show-source
+$ pytest --cov-report html
+```
 
 ## Documentation
 
