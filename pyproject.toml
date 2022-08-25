@@ -42,7 +42,7 @@ dev = [
     "pytest-cov",
     "flake8",
     "flake8-pyproject",
-    "tox"
+    "tox>=3.18"
 ]
 
 [project.urls]
