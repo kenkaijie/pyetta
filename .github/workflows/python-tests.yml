@@ -5,9 +5,11 @@ on:
 
 jobs:
   BuildAndTest:
-
-    name: Build and Test
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v3
