@@ -35,7 +35,7 @@ jobs:
           pip install .[dev]
       - name: Run Test With Coverage
         run: |
-          TOX_PARALLEL_NO_SPINNER=1 tox --parallel --verbose
+          TOX_PARALLEL_NO_SPINNER=1 tox -p
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
         if: success() || failure() # always run even if the previous step fails
