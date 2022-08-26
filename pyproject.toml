@@ -60,7 +60,7 @@ statistics = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--cov=pyetta --cov=examples"
+addopts = "--cov=pyetta --cov=examples --cov=test"
 
 [build-system]
 requires = ["setuptools"]
