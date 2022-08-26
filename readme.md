@@ -59,14 +59,24 @@ $ flake8 --show-source
 
 ## Tests and Coverage
 
-Tests for this project use `pytest` to operate. You can generate both unit test
-results and coverage results by running the following command.
+Tests for this project use `tox` with `pytest` to operate. You can generate both 
+unit test results and coverage results by running the following command.
+
+```shell
+$ tox
+```
+
+The `tox` command will run `pytest` in all environments.
+
+### Local Testing
+
+For local testing, you can simply `pytest` without the use of tox.
 
 ```shell
 $ pytest
 ```
 
-You can add `--cov-report html` to generate a html coverage report.
+You can also add `--cov-report html` to generate a html coverage report.
 
 ## Documentation
 
