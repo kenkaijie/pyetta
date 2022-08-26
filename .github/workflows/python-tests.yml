@@ -44,7 +44,7 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{secrets.CODECOV_TOKEN}}
-          files: .*_coverage_report.xml
+          files: .tox/*_coverage_report.xml
           fail_ci_if_error: true
       - name: Docs
         run: sphinx-build -W docs dist/docs
