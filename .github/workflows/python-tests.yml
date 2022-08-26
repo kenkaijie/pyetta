@@ -32,7 +32,7 @@ jobs:
           flake8 --exit-zero
       - name: Run Test With Coverage
         run: |
-          TOX_PARALLEL_NO_SPINNER=1 tox -p
+          TOX_PARALLEL_NO_SPINNER=1 tox --parallel --verbose
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
         if: success() || failure() # always run even if the previous step fails
@@ -44,7 +44,7 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{secrets.CODECOV_TOKEN}}
-          files: .tox/*_coverage_report.xml
+          files: "*_coverage_report.xml"
           fail_ci_if_error: true
       - name: Docs
         run: sphinx-build -W docs dist/docs
