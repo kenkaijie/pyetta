@@ -23,13 +23,6 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: '3.9'
-      - name: Install dependencies
-        run: |
-          python3.9 -m pip install --upgrade pip
-          python3.9 -m pip install .[dev]
-      - name: Linting
-        run: |
-          flake8 --exit-zero
       - name: Run Test With Coverage
         run: |
           TOX_PARALLEL_NO_SPINNER=1 tox --parallel --verbose
