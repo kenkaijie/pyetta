@@ -54,6 +54,9 @@ documentation = "https://pyetta.readthedocs.io/"
 [project.scripts]
 pyetta = "pyetta.cli_entry:main"
 
+[tool.setuptools]
+packages = ["pyetta"]
+
 [tool.flake8]
 max-line-length = 99
 exclude = ".git,__pycache__,docs/source/conf.py,old,build,dist,venv"
@@ -62,8 +65,8 @@ statistics = true
 
 [tool.coverage.run]
 parallel = true
+branch = true
 source = ["pyetta", "examples", "test"]
-command_line = "-m pytest"
 
 [build-system]
 requires = ["setuptools"]
