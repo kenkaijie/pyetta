@@ -10,7 +10,7 @@ maintainers = [
 ]
 requires-python = ">=3.7"
 license = { text = "MIT License" }
-readme = "readme.rst"
+readme = "README.md"
 dependencies = [
     "pyserial",
     "click>=8.0",
@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Topic :: Software Development :: Embedded Systems",
     "Topic :: Software Development :: Testing",
     "Topic :: System :: Hardware",
@@ -39,9 +40,11 @@ dev = [
     "myst-parser",
     "tomli",
     "pytest>=6.0",
-    "pytest-cov",
+    "coverage[toml]",
     "flake8",
-    "flake8-pyproject"
+    "flake8-pyproject",
+    "tox>=3.18",
+    "build"
 ]
 
 [project.urls]
@@ -51,15 +54,19 @@ documentation = "https://pyetta.readthedocs.io/"
 [project.scripts]
 pyetta = "pyetta.cli_entry:main"
 
+[tool.setuptools]
+packages = {"find" = { "include" = ["pyetta.*"]}}
+
 [tool.flake8]
 max-line-length = 99
-exclude = "venv"
+exclude = ".git,__pycache__,build,dist,venv"
 count = true
 statistics = true
 
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "--cov=pyetta --cov=examples"
+[tool.coverage.run]
+parallel = true
+branch = true
+source = ["pyetta", "examples", "test"]
 
 [build-system]
 requires = ["setuptools"]
