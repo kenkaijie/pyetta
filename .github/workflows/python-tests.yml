@@ -44,9 +44,16 @@ jobs:
           pip --version
           pip install --upgrade pip
           pip install .[dev]
+      - name: Build package
+        run: |
+          python -m build
       - name: Run Test With Coverage
         run: |
           tox -p -v
+      - name: Generate Coverage Reports
+        run: |
+          coverage combine
+          coverage xml -o coverage_report.xml
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
         if: success() || failure() # always run even if the previous step fails
@@ -58,7 +65,7 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{secrets.CODECOV_TOKEN}}
-          files: "*_coverage_report.xml"
+          files: "coverage_report.xml"
           fail_ci_if_error: true
 
   Docs:
