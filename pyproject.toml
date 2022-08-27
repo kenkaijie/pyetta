@@ -10,7 +10,7 @@ maintainers = [
 ]
 requires-python = ">=3.7"
 license = { text = "MIT License" }
-readme = "readme.md"
+readme = "README.md"
 dependencies = [
     "pyserial",
     "click>=8.0",
@@ -55,11 +55,11 @@ documentation = "https://pyetta.readthedocs.io/"
 pyetta = "pyetta.cli_entry:main"
 
 [tool.setuptools]
-packages = ["pyetta"]
+packages = {"find" = { "include" = ["pyetta.*"]}}
 
 [tool.flake8]
 max-line-length = 99
-exclude = ".git,__pycache__,docs/source/conf.py,old,build,dist,venv"
+exclude = ".git,__pycache__,build,dist,venv"
 count = true
 statistics = true
 
