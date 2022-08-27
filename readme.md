@@ -73,15 +73,21 @@ suitable for interpretation by developers.
 ### Local Testing
 
 As the `tox` call is used for final testing and preparing a branch for 
-submission. For a quicker turn around during development, you can simply 
-`pytest` and `flake8` without the use of tox.
+submission it is the recommended way to do preliminary testing on the 
+development machine as well. If not all the python environments are 
+available on your development machine, you can filter them out with the 
+`-e ENV` option to tox.
 
-> The arguments for the 2 functions are optional.
+For example, if you have python 3.8 and 3.9 on your development machine, you 
+would call the command to only run tox with these platforms.
 
 ```shell
-$ flake8 --show-source
-$ pytest --cov-report html
+$ tox -e py38,py39
 ```
+
+If you do not wish to use `tox`, the individual actions from `tox.ini` can 
+be inspected and run individually. This gives the best control and allows 
+custom reports to be generated (like html coverage).
 
 ## Documentation
 

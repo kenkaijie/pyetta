@@ -40,10 +40,11 @@ dev = [
     "myst-parser",
     "tomli",
     "pytest>=6.0",
-    "pytest-cov",
+    "coverage[toml]",
     "flake8",
     "flake8-pyproject",
-    "tox>=3.18"
+    "tox>=3.18",
+    "build"
 ]
 
 [project.urls]
@@ -59,9 +60,10 @@ exclude = ".git,__pycache__,docs/source/conf.py,old,build,dist,venv"
 count = true
 statistics = true
 
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "--cov=pyetta --cov=examples --cov=test"
+[tool.coverage.run]
+parallel = true
+source = ["pyetta", "examples", "test"]
+command_line = "-m pytest"
 
 [build-system]
 requires = ["setuptools"]
