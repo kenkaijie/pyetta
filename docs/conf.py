@@ -15,6 +15,7 @@ from pathlib import Path
 
 import tomli
 
+docs_source_path = Path(".").resolve()
 python_source_path = Path("..").resolve()
 sys.path.append(str(python_source_path))
 

@@ -47,14 +47,27 @@ pipeline. Note that multiple parsers and reporters can be attached to a single p
 General Options
 ================
 
-Each stage has their custom switches and parameters which can be inspected using the ``--help`` on that stage. The
-``--help`` command on the cli tool itself will list all the loaded stages in their respective category.
+Help (``--help``)
+``````````````````````
 
-In the command below, the help dialog will be called for the ``cstdin`` stage specifically.
+Help can be obtained via the command line interact itself. Each sub command (loaders, collectors, etc.) can also be
+queried for help.
 
-.. code::
+.. code-block:: shell
 
-    $ pyetta cstdin --help
+    $ pyetta --help
+
+If information relating to a particular stage is needed, that specific stage can be queried for help.
+
+.. code-block:: shell
+
+    $ pyetta cfile --help
+
+.. note::
+
+    Only the leftmost ``--help`` will be shown. Calling ``pyetta --help cfile --help`` will return the help dialog
+    for the main function only.
+
 
 Plugin Options (``--extras``/``--exclude-plugins``)
 `````````````````````````````````````````````````````````

@@ -1,4 +1,4 @@
-# Pyetta
+# pyetta
 
 [![Documentation Status](https://readthedocs.org/projects/pyetta/badge/?version=latest)](https://pyetta.readthedocs.io/en/latest/)
 [![Discord](https://img.shields.io/discord/1005420113194930309?color=C5F0A4)](https://discord.gg/4cmv4vrmYC)
@@ -8,6 +8,57 @@
 providing some helpers which modularise the process of on target testing. It
 provides both a CLI for simple use cases, and a library of components that can
 simplify creation of test scripts.
+
+The tool can be installed from pip by running the following command.
+
+```shell
+$ pip install pyetta
+```
+
+## Assistance
+
+The full documentation, including detailed usage and development goals can 
+be found in the [official documentation](https://pyetta.readthedocs.io/en/latest/).
+
+# What does it do?
+
+`pyetta` tries to bridge the gap between embedded systems development 
+(targeting microcontrollers) and CI/CD practises and the concept of 
+continual testing.
+
+It does this in 2 approaches:
+
+- A shipped CLI tool, which enables systems with commonly used frameworks to 
+  avoid having to rewrite testing parsers and converters to get the test 
+  results from the embedded board to their CI/CD pipeline.
+- A library of common tools used within the CLI tool that can assist and 
+  simplify the process of writing integration tests against the system.
+
+See the example below, if this sounds like something you have encountered or 
+are encountering, then `pyetta` may be able to help!
+
+## Sample Use Case
+
+A firmware developer develops an application targeting an STM32 
+microcontroller. This board performs various actions, including interfacing 
+with an SPI-based NAND flash storage device. The developer either writes this 
+driver themselves or they use an existing implementation provided by an external 
+party. Both of these scenarios needs to be integration tested against the rest 
+of the system. 
+
+Using `pyetta`, the developer may simplify their testing of the interaction 
+between the 2 chips. Depending on the testing approach, the 
+functionality can be testing either on-target (with the microcontroller 
+running the tests) or off-target, with a PC running the test on the 
+microcontroller.
+
+For on-target testing, `pyetta` CLI tool can assist the process of loading 
+firmware onto the board, executing the tests, collecting the data for these 
+tests, and parsing it into a supported and consumable format for the CI/CD 
+pipeline such as JUnit XML.
+
+For off-target testing, `pyetta`'s library of components can assist with 
+developing fixtures via the off-target unit test library (pytest for example).
 
 # Project Structure
 
