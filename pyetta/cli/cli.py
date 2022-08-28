@@ -17,10 +17,7 @@ from pyetta.loaders import PyOCDDeviceLoader
 from pyetta.parsers import UnityParser
 from pyetta.reporters import JUnitXmlReporter
 
-if sys.version_info < (3, 10):
-    from importlib_metadata import entry_points, EntryPoint
-else:
-    from importlib.metadata import entry_points, EntryPoint
+from importlib_metadata import entry_points, EntryPoint
 
 log = logging.getLogger("pyetta.cli")
 
