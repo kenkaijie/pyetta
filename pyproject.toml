@@ -53,7 +53,7 @@ repository = "https://github.com/kenkaijie/pyetta"
 documentation = "https://pyetta.readthedocs.io/"
 
 [project.scripts]
-pyetta = "pyetta.cli_entry:main"
+pyetta = "pyetta.__main__:main"
 
 [tool.setuptools]
 packages = {"find" = { "include" = ["pyetta", "pyetta.*"]}}

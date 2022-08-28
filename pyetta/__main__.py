@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import logging
 
 from pyetta.cli.cli import cli
@@ -10,5 +9,5 @@ def main():
     cli(auto_envvar_prefix="PYETTA")
 
 
-if __name__ == '__main__':
-    main()
+# no need to check if name is main, as our file name is explicit.
+main()
