@@ -1,17 +1,10 @@
-===================
-Homepage
-===================
-
-.. important::
-
-    Note this document is for version |version|.
-
-This is the documentation for the pyetta project.
+.. include:: ../README.md
+    :parser: myst_parser.sphinx_
 
 Quick Links
 ============
 
-The full api and documentation indices can be found below:
+The full API and documentation indices can be found below:
 
 - :ref:`genindex`
 - :ref:`modindex`
@@ -23,7 +16,6 @@ The full api and documentation indices can be found below:
     self
     cli
     plugin_development
-    developers
 
 .. toctree::
     :caption: API Reference

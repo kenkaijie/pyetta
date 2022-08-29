@@ -1,4 +1,4 @@
-# Pyetta
+# pyetta
 
 [![Documentation Status](https://readthedocs.org/projects/pyetta/badge/?version=latest)](https://pyetta.readthedocs.io/en/latest/)
 [![Discord](https://img.shields.io/discord/1005420113194930309?color=C5F0A4)](https://discord.gg/4cmv4vrmYC)
@@ -8,6 +8,57 @@
 providing some helpers which modularise the process of on target testing. It
 provides both a CLI for simple use cases, and a library of components that can
 simplify creation of test scripts.
+
+The tool can be installed from pip by running the following command.
+
+```shell
+$ pip install pyetta
+```
+
+## Assistance
+
+The full documentation, including detailed usage and development goals can 
+be found in the [official documentation](https://pyetta.readthedocs.io/en/latest/).
+
+# What does it do?
+
+`pyetta` tries to bridge the gap between embedded systems development 
+(targeting microcontrollers) and CI/CD practises and the concept of 
+continual testing.
+
+It does this in 2 approaches:
+
+- A shipped CLI tool, which enables systems with commonly used frameworks to 
+  avoid having to rewrite testing parsers and converters to get the test 
+  results from the embedded board to their CI/CD pipeline.
+- A library of common tools used within the CLI tool that can assist and 
+  simplify the process of writing integration tests against the system.
+
+See the example below, if this sounds like something you have encountered or 
+are encountering, then `pyetta` may be able to help!
+
+## Sample Use Case
+
+A firmware developer develops an application targeting an STM32 
+microcontroller. This board performs various actions, including interfacing 
+with an SPI-based NAND flash storage device. The developer either writes this 
+driver themselves or they use an existing implementation provided by an external 
+party. Both of these scenarios needs to be integration tested against the rest 
+of the system. 
+
+Using `pyetta`, the developer may simplify their testing of the interaction 
+between the 2 chips. Depending on the testing approach, the 
+functionality can be testing either on-target (with the microcontroller 
+running the tests) or off-target, with a PC running the test on the 
+microcontroller.
+
+For on-target testing, `pyetta` CLI tool can assist the process of loading 
+firmware onto the board, executing the tests, collecting the data for these 
+tests, and parsing it into a supported and consumable format for the CI/CD 
+pipeline such as JUnit XML.
+
+For off-target testing, `pyetta`'s library of components can assist with 
+developing fixtures via the off-target unit test library (pytest for example).
 
 # Project Structure
 
@@ -30,9 +81,9 @@ root
 
 The project python dependencies can be obtained by using pip to install them.
 Ensure the `[dev]` extras is installed in order to perform common developer
-actions such as testing or building docs.
+actions such as testing or building docs or running tests.
 
-## Building
+## Dependencies
 
 The command below will install all the dependencies and the project itself into
 the standard python locations for your platform.
@@ -41,48 +92,26 @@ the standard python locations for your platform.
 $ pip install .[dev]
 ```
 
-If only the dependencies are needed, you can subsequently call an uninstall to
-the pyetta package.
+If only the dependencies are needed, you can subsequently call `pip uninstall` 
+to remove the top level pyetta package.
 
 ```shell
 $ pip uninstall --yes pyetta
 ```
 
-## Linting and Analysis
+## Linting, Tests and Coverage
 
-Linting and static analysis is done using `flake8`. The command below can be
-used to run the linter.
+Tests for this project use `tox` to orchestrate all testing items and is used 
+for preparing a branch for submission. As such, it is the recommended way to do 
+preliminary testing on the development machine as well. 
 
-```shell
-$ flake8 
-```
-
-## Tests and Coverage
-
-Tests for this project use `tox` with `pytest` and `flake8` to operate. You can 
-check linting, run unit tests, and generate coverage by running the following 
-command.
+The command below runs tox on the developer's python version, as well as 
+building the documentation. You can specify the standard 
+[tox environments](https://tox.wiki/en/latest/config.html#tox-environments) 
+for testing specific python versions.
 
 ```shell
-$ tox
-```
-
-The command is optimised for automated testing, so the output may not be 
-suitable for interpretation by developers.
-
-### Local Testing
-
-As the `tox` call is used for final testing and preparing a branch for 
-submission it is the recommended way to do preliminary testing on the 
-development machine as well. If not all the python environments are 
-available on your development machine, you can filter them out with the 
-`-e ENV` option to tox.
-
-For example, if you have python 3.8 and 3.9 on your development machine, you 
-would call the command to only run tox with these platforms.
-
-```shell
-$ tox -e py38,py39
+$ tox -p
 ```
 
 Coverage can be generated by first combining all the coverage files, then 
@@ -93,13 +122,23 @@ $ coverage combine
 $ coverage html
 ```
 
-If you do not wish to use `tox`, the individual actions from `tox.ini` can 
-be inspected and run individually.
+If you do not wish to use `tox`, the individual actions supported from `tox.
+ini` can be inspected and run manually. Some common manual steps are shown 
+below for reference.
+
+## Linting and Analysis
+
+Linting and static analysis is done using `flake8`. The command below can be
+used to run the linter.
+
+```shell
+$ flake8 --show-source
+```
 
 ## Documentation
 
-Documentation for this project is located in the `docs` folder. It uses
-`sphinx` to build out all documentation (except this readme).
+Documentation for this project is located in the `docs` folder and is built by
+`sphinx`. 
 
 ```shell
 $ sphinx-build docs dist/docs

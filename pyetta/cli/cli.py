@@ -17,10 +17,7 @@ from pyetta.loaders import PyOCDDeviceLoader
 from pyetta.parsers import UnityParser
 from pyetta.reporters import JUnitXmlReporter
 
-if sys.version_info < (3, 10):
-    from importlib_metadata import entry_points, EntryPoint
-else:
-    from importlib.metadata import entry_points, EntryPoint
+from importlib_metadata import entry_points, EntryPoint
 
 log = logging.getLogger("pyetta.cli")
 
@@ -182,8 +179,7 @@ def cli_execute_plan(context: Context,
     context.exit(exit_code)
 
 
-@cli.command("lpyocd", help="Loader for PyOCD.",
-             cls=PyettaCommand, category='Loaders')
+@cli.command("lpyocd", cls=PyettaCommand, category='Loaders')
 @click.option("--firmware", help="Path to the input test runner firmware.",
               type=click.Path(exists=True, path_type=Path), required=True)
 @click.option("--probe", help="ID of the probe to use", required=False,
@@ -193,7 +189,9 @@ def cli_execute_plan(context: Context,
               required=True, type=str, metavar="TARGET_MCU")
 def lpyocd(firmware: Path, target: str,
            probe: Optional[str] = None) -> ExecutionCallable:
-    """Loader that uses pyocd to service the flashing of firmware to the board.
+    """Loader for PyOCD.
+
+    Loader uses PyOCD to service the flashing of firmware to the board.
     Note for this loader to work, pyocd must be loaded with the correct boards
     and debuggers.
     """
@@ -209,11 +207,11 @@ def lpyocd(firmware: Path, target: str,
     return configure_pipeline
 
 
-@cli.command("cstdin", help="Collector for standard input.",
-             cls=PyettaCommand, category='Collectors')
+@cli.command("cstdin", cls=PyettaCommand, category='Collectors')
 def cstdin() -> ExecutionCallable:
-    """Collector to extract information from standard in. Used if piping the
-    data from the device via a shell pipe.
+    """Collector to extract information from standard in.
+
+    Used if piping the data from the device via a shell pipe.
     """
 
     @execution_config
@@ -229,14 +227,15 @@ def cstdin() -> ExecutionCallable:
     return configure_pipeline
 
 
-@cli.command("cfile", help="Collector for file output.",
-             cls=PyettaCommand, category='Collectors')
+@cli.command("cfile", cls=PyettaCommand, category='Collectors')
 @click.option("--file", help="Path to the file with captured output.",
               type=click.Path(exists=True, path_type=Path, dir_okay=False),
               required=True)
 @click.option("-e", "--encoding", help="file encoding to open the file with.",
               default='utf-8')
 def cfile(file: Path, encoding: str = 'utf-8') -> ExecutionCallable:
+    """Collector that uses output from a text based file.
+    """
     @execution_config
     def configure_pipeline(context: Context,
                            pipeline: ExecutionPipeline) -> None:
@@ -247,13 +246,13 @@ def cfile(file: Path, encoding: str = 'utf-8') -> ExecutionCallable:
     return configure_pipeline
 
 
-@cli.command("cserial", help="Collector for serial based test output.",
-             cls=PyettaCommand, category='Collectors')
+@cli.command("cserial", cls=PyettaCommand, category='Collectors')
 @click.option("--baud", help="Baud rate of serial port.", default=115200,
               required=True, type=int, metavar="BAUD")
 @click.option("--port", help="The serial port to use.",
               type=str, required=True, metavar="PORT")
 def cserial(port: str, baud: int) -> ExecutionCallable:
+    """Collector that opens a serial port to collect data."""
     @execution_config
     def configure_pipeline(context: Context,
                            pipeline: ExecutionPipeline) -> None:
@@ -265,11 +264,11 @@ def cserial(port: str, baud: int) -> ExecutionCallable:
     return configure_pipeline
 
 
-@cli.command("punity", help="Parser for the Unity unit test framework.",
-             cls=PyettaCommand, category="Parsers")
+@cli.command("punity", cls=PyettaCommand, category="Parsers")
 @click.option("--name", help="optional name of this test suite",
               type=str, metavar="TEST_SUITE_NAME")
 def punity(name: Optional[str] = None) -> ExecutionCallable:
+    """Parser for the Unity unit test framework."""
     @execution_config
     def configure_pipeline(context: Context,
                            pipeline: ExecutionPipeline) -> None:

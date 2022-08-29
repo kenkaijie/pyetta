@@ -15,7 +15,8 @@ dependencies = [
     "pyserial",
     "click>=8.0",
     "pyocd>=0.34",
-    "junit-xml"
+    "junit-xml",
+    "importlib-metadata"
 ]
 classifiers = [
     "Development Status :: 1 - Planning",
@@ -55,7 +56,7 @@ documentation = "https://pyetta.readthedocs.io/"
 pyetta = "pyetta.cli_entry:main"
 
 [tool.setuptools]
-packages = {"find" = { "include" = ["pyetta.*"]}}
+packages = {"find" = { "include" = ["pyetta", "pyetta.*"]}}
 
 [tool.flake8]
 max-line-length = 99
