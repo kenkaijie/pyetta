@@ -1,6 +1,6 @@
 [project]
 name = "pyetta"
-version = "0.0.4dev0"
+version = "0.0.4dev1"
 description = "Tooling for automated testing on embedded bare metal platforms."
 authors = [
     { name = "Kenneth Ng", email = "ngkaijie@hotmail.com" }
