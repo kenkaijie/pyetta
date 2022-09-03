@@ -49,7 +49,26 @@ class Reporter(ABC):
         return test_fails
 
 
-class JUnitXmlReporter(Reporter):
+class ExitCodeReporter(Reporter):
+    def __init__(self, fail_on_skipped: bool = False,
+                 fail_on_empty: bool = False) -> None:
+        """Simple reporter that just modifies the exit code. It returns a simple 1 or 0 depending
+        on if there are passed or failed tests.
+
+        :param fail_on_skipped: Set to true if skipped tests should count as failures.
+        :param fail_on_empty: Set to true if the lack of any tests cases results in a failure.
+        """
+        self._fail_on_skipped = fail_on_skipped
+        self._fail_on_empty = fail_on_empty
+        super().__init__()
+
+    def generate_report(self, tests: Optional[Iterable[TestSuite]]) -> int:
+        exit_code = self.generate_exit_code(tests, fail_skipped=self._fail_on_skipped,
+                                            fail_empty=self._fail_on_empty)
+        return min(exit_code, 1)
+
+
+class JUnitXmlReporter(ExitCodeReporter):
 
     def __init__(self, file_path: Path,
                  fail_on_skipped: bool = False,
@@ -72,6 +91,4 @@ class JUnitXmlReporter(Reporter):
         with open(self._output_filepath, 'w') as fo:
             to_xml_report_file(fo, test_suites=tests, encoding='utf-8')
 
-        return self.generate_exit_code(tests,
-                                       fail_skipped=self._fail_on_skipped,
-                                       fail_empty=self._fail_on_empty)
+        return super().generate_report(tests)

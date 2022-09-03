@@ -10,7 +10,7 @@ log = logging.getLogger('pyetta.parsers')
 
 
 class Parser(ABC):
-    """Pyetta parser stage-
+    """Pyetta parser stage.
 
     The parser stage is fed the input from a collector in the form of bytes.
     """
@@ -29,7 +29,6 @@ class Parser(ABC):
         :param data_chunk: A chunk of data to parse. This chunk should be
                            complete it itself.
         """
-        pass
 
     @abstractmethod
     def stop(self, forced: bool = False) -> None:
@@ -41,7 +40,6 @@ class Parser(ABC):
         If stopped before parse completion the parser must add a failed test
         indicating a forced stopped.
         """
-        pass
 
     @property
     @abstractmethod
@@ -60,7 +58,6 @@ class Parser(ABC):
 
         :returns: A list of parsed test suites.
         """
-        pass
 
     def _add_parser_error(self, message: Optional[str] = None) -> None:
         """Generates an error test case and stores it under the reserved
@@ -95,13 +92,15 @@ class UnityParser(Parser):
         STARTING = 0
         DONE = 1
 
-    def __init__(self, name: Optional[str] = None):
+    def __init__(self, name: Optional[str] = None, encoding: str = 'ascii'):
         """A basic parser for the unity unit testing program.
 
         :param name: Name of the test suite to create if test cases are found outside test suites.
+        :param encoding: The encoding the input is in (allows for correct decoding).
         """
         super(UnityParser, self).__init__()
         self._name = name
+        self._encoding = encoding
         self._state = UnityParser._ParserState.STARTING
         self._default_test_suite_name = name
         self._test_suites[name] = TestSuite(name=f"{name}")
@@ -119,7 +118,7 @@ class UnityParser(Parser):
 
     def feed_data(self, data_chunk: bytes) -> None:
         try:
-            line = data_chunk.decode('ascii')
+            line = data_chunk.decode(self._encoding).strip()
             if UnityParser.REGEX_TEST.match(line):
                 match_dict = UnityParser.REGEX_TEST.match(line).groupdict()
                 test_case = TestCase(match_dict["test_name"],
@@ -139,7 +138,7 @@ class UnityParser(Parser):
             elif UnityParser.REGEX_FINAL_LINE.match(line):
                 self._transition_state(UnityParser._ParserState.DONE)
         except Exception as ec:
-            self._add_parser_error(f"{ec.__name__} raised with message: {ec}.")
+            self._add_parser_error(f"{ec.__class__.__name__} raised with message: {ec}.")
             self._transition_state(UnityParser._ParserState.DONE)
 
     def stop(self, forced: bool = False) -> None:

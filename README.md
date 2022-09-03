@@ -3,6 +3,8 @@
 [![Documentation Status](https://readthedocs.org/projects/pyetta/badge/?version=latest)](https://pyetta.readthedocs.io/en/latest/)
 [![Discord](https://img.shields.io/discord/1005420113194930309?color=C5F0A4)](https://discord.gg/4cmv4vrmYC)
 [![codecov](https://codecov.io/gh/kenkaijie/pyetta/branch/master/graph/badge.svg?token=7PFFKAUR25)](https://codecov.io/gh/kenkaijie/pyetta)
+[![Build, Test, and Coverage](https://github.com/kenkaijie/pyetta/actions/workflows/python-tests.yml/badge.svg)](https://github.com/kenkaijie/pyetta)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyetta)](https://pypi.org/project/pyetta/)
 
 `pyetta` is a multi-tool made to simplify device on target testing workflows by
 providing some helpers which modularise the process of on target testing. It
@@ -155,3 +157,10 @@ package for deployment to a python package repository.
 ```shell
 $ python -m build
 ```
+
+## Debugging
+
+A note on debugging pyetta built-in plugins. The built-in plugins can be 
+auto-loaded if  the pyetta package is installed and the entrypoint metadata is 
+available to the system. To circumvent this, builtin commands can be injected in
+via the `--extras` flag if they are needed during development.
