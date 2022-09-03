@@ -154,11 +154,11 @@ def cli_execute_plan(context: Context,
 
         done = False
         while not done:
-            line_bytes = plan.collector.readline()
+            chunk = plan.collector.read_chunk()
 
-            if line_bytes is not None and len(line_bytes) > 0:
-                click.echo(line_bytes)
-                plan.parser.feed_data(line_bytes)
+            if chunk is not None and len(chunk) > 0:
+                click.echo(chunk)
+                plan.parser.feed_data(chunk)
             else:
                 plan.parser.stop()
 

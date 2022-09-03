@@ -7,8 +7,7 @@ translated into unit tests. For typical implementations, this may include a seri
 standard human readable testing output.
 
 For specialised applications, the unit test output may be in binary format. It is up to the collector to define its own
-encoding and data type. To support the generic nature of this, the collector is a wrapper around the python built-in
-:external:py:class:`io.IOBase`.
+encoding and data type.
 
 
 .. autoclass:: pyetta.collectors::Collector

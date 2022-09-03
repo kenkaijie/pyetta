@@ -1,15 +1,34 @@
-from io import IOBase
+from abc import ABC, abstractmethod
+from typing import IO
 
-from serial import Serial
 
+class Collector(ABC):
+    """Pyetta collector class, provides a small abstraction to allow for the collection of data.
 
-class Collector(IOBase):
-    """Pyetta collector class, provides a small abstraction on top of an
-    :external:py:class:`io.IOBase` object which will allow additional functionality in the future.
+    .. note::
+        Timeouts if relevant should be handled by the constructor,
     """
 
+    @abstractmethod
+    def read_chunk(self) -> bytes:
+        """Reads a chunk of data.
 
-class SerialCollector(Serial, Collector):
-    """Serial implementation for a collector. This is just a wrapper around the serial
-    library.
-    """
+        A chunk is defined as a single continuous piece that a parser can use to extract one of
+        more tests from. Each chunk should have a whole piece of data."""
+
+
+class IOBaseCollector(Collector):
+    """Base helper wrapping class that covers all base IO collectors."""
+
+    def __init__(self, io_base: IO):
+        super().__init__()
+        self._io = io_base
+
+    def __enter__(self):
+        return self._io.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self._io.__exit__(exc_type, exc_val, exc_tb)
+
+    def read_chunk(self) -> bytes:
+        return self._io.readline()

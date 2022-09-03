@@ -12,6 +12,7 @@ from serial import Serial
 
 from pyetta.cli.cli import add_command_to_cli
 from pyetta.cli.utils import PyettaCommand, ExecutionCallable, execution_config, ExecutionPipeline
+from pyetta.collectors import IOBaseCollector
 from pyetta.loaders import Loader, PyOCDDeviceLoader
 from pyetta.parsers import UnityParser
 from pyetta.reporters import JUnitXmlReporter, ExitCodeReporter
@@ -42,7 +43,7 @@ def lnull() -> ExecutionCallable:
 
 @click.command("cfile", cls=PyettaCommand, category='Collectors',
                plugin_name="_builtins",
-               help="Collector that uses output from a text based file.")
+               help="Collector that uses output from a text based file. File is opened as binary.")
 @click.option("--file", help="Path to the file with captured output.",
               type=click.Path(exists=True, path_type=Path, dir_okay=False),
               required=True)
@@ -50,7 +51,7 @@ def cfile(file: Path) -> ExecutionCallable:
     @execution_config
     def configure_pipeline(context: Context,
                            pipeline: ExecutionPipeline) -> None:
-        file_obj = io.open(file=file, mode="rb")
+        file_obj = IOBaseCollector(io.open(file=file, mode="rb"))
         pipeline.collector = file_obj
         context.with_resource(file_obj)
 
@@ -65,8 +66,8 @@ def cfile(file: Path) -> ExecutionCallable:
               type=str, metavar="PROBE_ID")
 @click.option("--target",
               help="Chip target, must match the target connected to the host",
-              required=True, type=str, metavar="TARGET_MCU")
-def lpyocd(firmware: Path, target: str,
+              required=False, type=str, metavar="TARGET_MCU")
+def lpyocd(firmware: Path, target: Optional[str] = None,
            probe: Optional[str] = None) -> ExecutionCallable:
     """Loader for PyOCD.
 
@@ -87,15 +88,16 @@ def lpyocd(firmware: Path, target: str,
 @click.command("cserial", cls=PyettaCommand, category='Collectors', plugin_name='_builtins',
                help="Collector that opens a serial port to collect data.")
 @click.option("--baud", help="Baud rate of serial port.", default=115200,
-              required=True, type=int, metavar="BAUD")
+              required=False, type=int, metavar="BAUD")
 @click.option("--port", help="The serial port to use.",
               type=str, required=True, metavar="PORT")
-def cserial(port: str, baud: int) -> ExecutionCallable:
+def cserial(port: str, baud: int = 115200) -> ExecutionCallable:
     @execution_config
-    def configure_pipeline(_: Context,
+    def configure_pipeline(context: Context,
                            pipeline: ExecutionPipeline) -> None:
-        serial = Serial(port=port, baudrate=baud, timeout=5)
+        serial = IOBaseCollector(Serial(port=port, baudrate=baud, timeout=5))
         pipeline.collector = serial
+        context.with_resource(serial)
 
     return configure_pipeline
 
@@ -160,8 +162,8 @@ def rexit(fail_skipped: bool = False, fail_empty: bool = False) -> ExecutionCall
 
 def load_plugin():
     add_command_to_cli(lnull)
-    add_command_to_cli(cfile)
     add_command_to_cli(lpyocd)
+    add_command_to_cli(cfile)
     add_command_to_cli(cserial)
     add_command_to_cli(punity)
     add_command_to_cli(rjunitxml)

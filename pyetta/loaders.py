@@ -42,7 +42,7 @@ class PyOCDDeviceLoader(Loader):
     you need to override the calls with extra functions.
     """
 
-    def __init__(self, target: str, firmware_path: Path,
+    def __init__(self, firmware_path: Path, target: Optional[str] = None,
                  probe: Optional[str] = None):
         self._target = target
         self._firmware_path = firmware_path
@@ -50,17 +50,17 @@ class PyOCDDeviceLoader(Loader):
         self._session: Optional[Session] = None
 
     def __str__(self):
-        return f"PyOCD Loader, file='{self._firmware_path}', target='{self._target}'"
+        return f"PyOCD Loader, file='{self._firmware_path}', target='{self._target or 'auto'}'"
 
     def __enter__(self):
         self._session = ConnectHelper.session_with_chosen_probe(blocking=False,
                                                                 return_first=True,
                                                                 unique_id=self._probe,
-                                                                auto_open=False)
+                                                                auto_open=True)
         if self._session is not None:
             self._session.__enter__()
             self._board = self._session.board
-            if self._board.target_type != self._target:
+            if self._target is not None and self._board.target_type != self._target:
                 raise ValueError(
                     f"Debugger target is not correct {self._board.target_type}.")
             return self
@@ -75,7 +75,7 @@ class PyOCDDeviceLoader(Loader):
     def load_to_device(self,
                        progress: Optional[Callable[[int], None]] = None) -> None:
         programmer = FileProgrammer(self._session, progress=progress)
-        programmer.program(file_or_path=str(self._firmware_path))
+        programmer.program(file_or_path=str(self._firmware_path.resolve()))
 
     def reset_device(self) -> None:
         self._board.target.reset()
