@@ -20,8 +20,8 @@ log = logging.getLogger("pyetta.cli")
 class CliState:
     """ CLI shared state.
     """
-    extras: Optional[Path] = None
-    plugins_filter: Optional[Set[str]] = None
+    extras: Set[Path] = field(default_factory=set)
+    plugins_filter: Set[str] = field(default_factory=set)
 
 
 @dataclass
@@ -166,7 +166,7 @@ class PyettaCLIRoot(click.Group):
 
             label = getattr(cmd, 'category', 'Commands')
             plugin_name = getattr(cmd, 'plugin_name', None)
-            help_str = cmd.help or ''
+            help_str = cmd.short_help or cmd.help or ''
             if plugin_name is not None:
                 help_str += f" [plugin: {plugin_name}]"
 

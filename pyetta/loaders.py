@@ -23,20 +23,17 @@ class Loader(ABC):
                          should take in a single int representing the
                          percentage completion [0-100].
         """
-        ...
 
     @abstractmethod
     def reset_device(self) -> None:
         """Resets the device. This can be either a software or hardware reset depending on the
         implementation. The expected result of this reset is that all internal states of the device
         are reset into their default values on startup."""
-        ...
 
     @abstractmethod
     def start_program(self) -> None:
         """Starts the loaded program from the beginning. Each subsequent run of the program should
         have its state unaffected by previous run."""
-        ...
 
 
 class PyOCDDeviceLoader(Loader):
@@ -45,7 +42,7 @@ class PyOCDDeviceLoader(Loader):
     you need to override the calls with extra functions.
     """
 
-    def __init__(self, target: str, firmware_path: Path,
+    def __init__(self, firmware_path: Path, target: Optional[str] = None,
                  probe: Optional[str] = None):
         self._target = target
         self._firmware_path = firmware_path
@@ -53,18 +50,17 @@ class PyOCDDeviceLoader(Loader):
         self._session: Optional[Session] = None
 
     def __str__(self):
-        return f"PyOCD Loader, file='{self._firmware_path}', target='{self._target}'"
+        return f"PyOCD Loader, file='{self._firmware_path}', target='{self._target or 'auto'}'"
 
     def __enter__(self):
-        self._session = ConnectHelper. \
-            session_with_chosen_probe(blocking=False,
-                                      return_first=True,
-                                      unique_id=self._probe,
-                                      auto_open=False)
+        self._session = ConnectHelper.session_with_chosen_probe(blocking=False,
+                                                                return_first=True,
+                                                                unique_id=self._probe,
+                                                                auto_open=True)
         if self._session is not None:
             self._session.__enter__()
             self._board = self._session.board
-            if self._board.target_type != self._target:
+            if self._target is not None and self._board.target_type != self._target:
                 raise ValueError(
                     f"Debugger target is not correct {self._board.target_type}.")
             return self
@@ -79,7 +75,7 @@ class PyOCDDeviceLoader(Loader):
     def load_to_device(self,
                        progress: Optional[Callable[[int], None]] = None) -> None:
         programmer = FileProgrammer(self._session, progress=progress)
-        programmer.program(file_or_path=str(self._firmware_path))
+        programmer.program(file_or_path=str(self._firmware_path.resolve()))
 
     def reset_device(self) -> None:
         self._board.target.reset()
@@ -87,19 +83,3 @@ class PyOCDDeviceLoader(Loader):
     def start_program(self):
         self._board.target.reset_and_halt()
         self._board.target.resume()
-
-
-class DummyLoader(Loader):
-    """Dummy loader used in place where no loader is required. Performs no actions when loaded and
-    immediately returns when a load is requested."""
-
-    def load_to_device(self,
-                       progress: Optional[Callable[[int], None]] = None) -> None:
-        if progress is not None:
-            progress(100)
-
-    def reset_device(self) -> None:
-        pass
-
-    def start_program(self):
-        pass

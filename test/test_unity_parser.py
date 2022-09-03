@@ -1,3 +1,4 @@
+import pytest
 from junit_xml import TestCase
 
 from pyetta.parsers import UnityParser
@@ -24,6 +25,36 @@ def assert_test_case_equivalent(a: TestCase, b: TestCase) -> None:
             else:
                 # raise assertion here due to mismatch, thus they are not equal
                 assert False
+
+
+def test_assert_test_case_should_not_throw_when_equal():
+
+    a = TestCase(name="test_led_on_command_turns_on_led",
+                 file="/mypath/foo.c",
+                 line=19,
+                 stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
+
+    b = TestCase(name="test_led_on_command_turns_on_led",
+                 file="/mypath/foo.c",
+                 line=19,
+                 stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
+
+    assert_test_case_equivalent(a, b)
+
+
+def test_assert_test_case_should_throw_when_not_equal():
+    a = TestCase(name="test_led_on_command_turns_on_led",
+                 file="/mypath/foo.c_",
+                 line=19,
+                 stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
+
+    b = TestCase(name="test_led_on_command_turns_on_led",
+                 file="/mypath/foo.c",
+                 line=19,
+                 stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
+
+    with pytest.raises(AssertionError):
+        assert_test_case_equivalent(a, b)
 
 
 def test_parse_test_pass_information():

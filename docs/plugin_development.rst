@@ -3,8 +3,7 @@ Plugin Development
 =======================
 
 This section has guidelines on creating extension plugins for the pyetta
-system. This covers the scripted version via the ``--extras`` flag, but can
-also apply to the packaged version.
+system.
 
 Click Subcommands
 =====================
@@ -37,10 +36,48 @@ not found or an exception is thrown during the loading of a plugin, a
     ``--ignore-plugins`` with the name of the plugins. This flag has to be used
     before the extras flag as they are evaluated in the order of occurrence.
 
+Loading Plugins
+================
+
+Plugins can be loaded in 2 distinct ways.
+
+- Using the ``--extras`` flag.
+- Using the entrypoint group ``pyetta.plugins``.
+
+.. note::
+
+    Any plugin developed to be used as a plugin can be directly invoked using the ``--extras`` flag. No additional
+    development is needed.
+
+Using Entry Point ``pyetta.plugins``
+---------------------------------------
+
+A plugin can be loaded using the entrypoint. This allows for plugin developers to distribute their plugins using PyPI or
+any other python package repository. ``pyetta`` uses this mechanism to load its own builtin handlers, which can be seen
+from the snippet in the project ``pyproject.toml`` manifest.
+
+.. literalinclude:: ../pyproject.toml
+    :language: toml
+    :start-after: #[BEGIN_SPHINX_ENTRYPOINTS]
+    :end-before: #[END_SPHINX_ENTRYPOINTS]
+
+A plugin package may support multiple entry points. All of which can have their own load plugin entry points. To enforce
+consistency, ``pyetta`` plugin entries should be modules which have the :ref:`Magic Method` as part of their members.
+The system will extract this method and call it when loading the CLI tool.
+
+Using ``--extras``
+----------------------
+
+The CLI flag allows developers to include project specific plugins that do not need to be distributed. This allows for
+once of for hyper specific stages to be implemented as part of the firmware development (such as a customer firmware
+update process).
+
 .. _Plugin Example:
 
 ``foo_plugin.py`` Example
 ===========================
+
+The ``foo_plugin.py`` example shows a module that is designed as a sample for what a plugin might look like.
 
 .. tip::
 
@@ -74,9 +111,9 @@ Plugins can be debugged by either running the cli tool in debug mode, or by crea
 around the entry point.
 
 An example of such a script is the entry point python script used to call pyetta itself. This can be called by importing
-and calling the :func:`pyetta.cli_entry.main` function.
+and calling the :func:`pyetta.__main__.main` function.
 
-.. literalinclude:: ../pyetta/cli_entry.py
+.. literalinclude:: ../pyetta/__main__.py
     :language: python
     :linenos:
 
