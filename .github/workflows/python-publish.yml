@@ -33,7 +33,6 @@ jobs:
             dist/*.tar.gz
           fail_on_unmatched_files: true
       - name: Publish package
-        if: github.ref == 'refs/heads/master'
         uses: pypa/gh-action-pypi-publish@v1.5.1
         with:
           password: ${{ secrets.PYPI }}
