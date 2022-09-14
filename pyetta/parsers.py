@@ -2,9 +2,9 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from enum import IntEnum
-from typing import Optional, List, Dict
+from typing import Optional, List
 
-from junit_xml import TestCase, TestSuite
+from pyetta.parser_data import TestCase, TestResult
 
 log = logging.getLogger('pyetta.parsers')
 
@@ -15,12 +15,12 @@ class Parser(ABC):
     The parser stage is fed the input from a collector in the form of bytes.
     """
 
-    RESERVED_TEST_SUITE = "pyetta.parser"
+    RESERVED_TEST_GROUP = "pyetta.parser"
     """Special test suite for pyetta parser specific errors. If any parser encounters an error,
     they should create a failed test case within the suite."""
 
     def __init__(self):
-        self._test_suites: Dict[str, TestSuite] = {}
+        self._test_cases: List[TestCase] = list()
 
     @abstractmethod
     def feed_data(self, data_chunk: bytes) -> None:
@@ -51,13 +51,13 @@ class Parser(ABC):
         """
 
     @property
-    @abstractmethod
-    def test_suites(self) -> List[TestSuite]:
-        """The parsed test suites up to this point. Note this may be incomplete
+    def test_cases(self) -> List[TestCase]:
+        """The parsed test cases up to this point. Note this may be incomplete
         if called before the parser is stopped.
 
         :returns: A list of parsed test suites.
         """
+        return self._test_cases
 
     def _add_parser_error(self, message: Optional[str] = None) -> None:
         """Generates an error test case and stores it under the reserved
@@ -66,16 +66,12 @@ class Parser(ABC):
         :param message: Optional message to place in the error.
         """
 
-        test_case = TestCase("parser_error", "pyetta.parsers", line=0)
-        test_case.add_error_info(message or "parser error")
-        if Parser.RESERVED_TEST_SUITE not in self._test_suites:
-            # we only make it on the first use, or else we will have empty test
-            # suites which may trigger failures (if fail on empty is set to
-            # true
-            self._test_suites[Parser.RESERVED_TEST_SUITE] = TestSuite(
-                name=Parser.RESERVED_TEST_SUITE)
-        self._test_suites[Parser.RESERVED_TEST_SUITE].test_cases.append(
-            test_case)
+        test_case = TestCase(group=Parser.RESERVED_TEST_GROUP,
+                             name="parser_error",
+                             result=TestResult.Fail,
+                             line_num=0,
+                             stdout=message)
+        self._test_cases.append(test_case)
 
 
 class UnityParser(Parser):
@@ -102,38 +98,37 @@ class UnityParser(Parser):
         self._name = name
         self._encoding = encoding
         self._state = UnityParser._ParserState.STARTING
-        self._default_test_suite_name = name
-        self._test_suites[name] = TestSuite(name=f"{name}")
+        self._default_test_group = name
 
     def __str__(self):
         return f"{self.__name__}"
 
     @property
-    def test_suites(self) -> Optional[List[TestSuite]]:
-        return list(self._test_suites.values())
-
-    @property
     def done(self) -> bool:
         return self._state == UnityParser._ParserState.DONE
+
+    @staticmethod
+    def _from_unity_result(result_string: str) -> TestResult:
+        if result_string == "IGNORE":
+            result = TestResult.Skip
+        elif result_string == "PASS":
+            result = TestResult.Pass
+        else:
+            result = TestResult.Fail
+        return result
 
     def feed_data(self, data_chunk: bytes) -> None:
         try:
             line = data_chunk.decode(self._encoding).strip()
             if UnityParser.REGEX_TEST.match(line):
                 match_dict = UnityParser.REGEX_TEST.match(line).groupdict()
-                test_case = TestCase(match_dict["test_name"],
-                                     file=match_dict["file_path"],
-                                     line=int(match_dict["line_no"]))
-                test_case.stdout = line.strip().strip('\n')
-                message = match_dict.get("test_message", None)
-                if match_dict["test_result"] == "IGNORE":
-                    test_case.add_skipped_info(message)
-                elif match_dict["test_result"] == "PASS":
-                    pass  # we don't modify the test case result
-                else:
-                    test_case.add_failure_info(message)
-                self._test_suites[
-                    self._default_test_suite_name].test_cases.append(test_case)
+                test_case = TestCase(name=match_dict["test_name"],
+                                     result=self._from_unity_result(match_dict["test_result"]),
+                                     filepath=match_dict["file_path"],
+                                     line_num=int(match_dict["line_no"]),
+                                     stdout=line.strip().strip('\n'),
+                                     result_message=match_dict.get("test_message", None))
+                self._test_cases.append(test_case)
 
             elif UnityParser.REGEX_FINAL_LINE.match(line):
                 self._transition_state(UnityParser._ParserState.DONE)

@@ -171,7 +171,7 @@ def cli_execute_plan(context: Context,
     # pass test suites to reports
     exit_code = 0
     for reporter in plan.reporters:
-        reporter_exit_code = reporter.generate_report(plan.parser.test_suites)
+        reporter_exit_code = reporter.generate_report(plan.parser.test_cases)
 
         # our logic just takes the highest exit code it can
         exit_code = max(reporter_exit_code, exit_code)

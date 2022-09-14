@@ -106,7 +106,7 @@ def cserial(port: str, baud: int = 115200) -> ExecutionCallable:
                help="Parser for the Unity unit test framework.")
 @click.option("--name", help="optional name of this test suite",
               type=str, metavar="TEST_SUITE_NAME")
-@click.option("-e", "--encoding", help="file encoding to open the file with.",
+@click.option("-e", "--encoding", help="File encoding to open the file with.",
               default='ascii')
 def punity(name: Optional[str] = None, encoding: str = 'ascii') -> ExecutionCallable:
     @execution_config
@@ -120,22 +120,22 @@ def punity(name: Optional[str] = None, encoding: str = 'ascii') -> ExecutionCall
 
 @click.command("rjunitxml", cls=PyettaCommand, category="Reporters", plugin_name="_builtins",
                help="JUnit XML output reporter.")
-@click.option("--file", "file_path", help="Output file path.", required=True,
+@click.option("--file", "file", help="Output file path.", required=True,
               type=click.Path(path_type=Path))
-@click.option("--fail-on-skipped", "fail_skipped",
+@click.option("--fail-on-skipped",
               help="Returns a failure exit code if any tests are skipped.",
               is_flag=True, default=False, type=bool)
-@click.option("--fail-on-empty", "fail_empty",
+@click.option("--fail-on-empty",
               help="Returns a failure exit code if no tests were detected.",
               is_flag=True, default=False, type=bool)
-def rjunitxml(file_path: Path, fail_skipped: bool = False,
-              fail_empty: bool = False) -> ExecutionCallable:
+def rjunitxml(file: Path, fail_on_skipped: bool = False,
+              fail_on_empty: bool = False) -> ExecutionCallable:
     @execution_config
     def configure_pipeline(_: Context,
                            pipeline: ExecutionPipeline) -> None:
-        reporter = JUnitXmlReporter(file_path=file_path,
-                                    fail_on_skipped=fail_skipped,
-                                    fail_on_empty=fail_empty)
+        reporter = JUnitXmlReporter(file_path=file,
+                                    fail_on_skipped=fail_on_skipped,
+                                    fail_on_empty=fail_on_empty)
         pipeline.reporters.append(reporter)
 
     return configure_pipeline
@@ -143,18 +143,18 @@ def rjunitxml(file_path: Path, fail_skipped: bool = False,
 
 @click.command("rexit", cls=PyettaCommand, category="Reporters", plugin_name="_builtins",
                help="Reporter to just output exit code.")
-@click.option("--fail-on-skipped", "fail_skipped",
+@click.option("--fail-on-skipped",
               help="Returns a failure exit code if any tests are skipped.",
               is_flag=True, default=False, type=bool)
-@click.option("--fail-on-empty", "fail_empty",
+@click.option("--fail-on-empty",
               help="Returns a failure exit code if no tests were detected.",
               is_flag=True, default=False, type=bool)
-def rexit(fail_skipped: bool = False, fail_empty: bool = False) -> ExecutionCallable:
+def rexit(fail_on_skipped: bool = False, fail_on_empty: bool = False) -> ExecutionCallable:
     @execution_config
     def configure_pipeline(_: Context,
                            pipeline: ExecutionPipeline) -> None:
-        reporter = ExitCodeReporter(fail_on_skipped=fail_skipped,
-                                    fail_on_empty=fail_empty)
+        reporter = ExitCodeReporter(fail_on_skipped=fail_on_skipped,
+                                    fail_on_empty=fail_on_empty)
         pipeline.reporters.append(reporter)
 
     return configure_pipeline

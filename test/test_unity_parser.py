@@ -1,5 +1,5 @@
 import pytest
-from junit_xml import TestCase
+from pyetta.parser_data import TestCase, TestResult
 
 from pyetta.parsers import UnityParser
 
@@ -30,13 +30,15 @@ def assert_test_case_equivalent(a: TestCase, b: TestCase) -> None:
 def test_assert_test_case_should_not_throw_when_equal():
 
     a = TestCase(name="test_led_on_command_turns_on_led",
-                 file="/mypath/foo.c",
-                 line=19,
+                 filepath="/mypath/foo.c",
+                 line_num=19,
+                 result=TestResult.Pass,
                  stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
 
     b = TestCase(name="test_led_on_command_turns_on_led",
-                 file="/mypath/foo.c",
-                 line=19,
+                 filepath="/mypath/foo.c",
+                 line_num=19,
+                 result=TestResult.Pass,
                  stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
 
     assert_test_case_equivalent(a, b)
@@ -44,13 +46,15 @@ def test_assert_test_case_should_not_throw_when_equal():
 
 def test_assert_test_case_should_throw_when_not_equal():
     a = TestCase(name="test_led_on_command_turns_on_led",
-                 file="/mypath/foo.c_",
-                 line=19,
+                 filepath="/mypath/foo.c_",
+                 line_num=19,
+                 result=TestResult.Pass,
                  stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
 
     b = TestCase(name="test_led_on_command_turns_on_led",
-                 file="/mypath/foo.c",
-                 line=19,
+                 filepath="/mypath/foo.c",
+                 line_num=19,
+                 result=TestResult.Pass,
                  stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
 
     with pytest.raises(AssertionError):
@@ -61,8 +65,9 @@ def test_parse_test_pass_information():
     test_line = b'/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS'
 
     expected_test_case = TestCase(name="test_led_on_command_turns_on_led",
-                                  file="/mypath/foo.c",
-                                  line=19,
+                                  filepath="/mypath/foo.c",
+                                  line_num=19,
+                                  result=TestResult.Pass,
                                   stdout="/mypath/foo.c:19:test_led_on_command_turns_on_led:PASS")
 
     parser = UnityParser()
@@ -71,10 +76,9 @@ def test_parse_test_pass_information():
 
     parser.stop()
 
-    assert len(parser.test_suites) == 1
-    assert len(parser.test_suites[0].test_cases) == 1
+    assert len(parser.test_cases) == 1
 
-    test_case: TestCase = parser.test_suites[0].test_cases[0]
+    test_case: TestCase = parser.test_cases[0]
 
     assert_test_case_equivalent(expected_test_case, test_case)
 
@@ -91,19 +95,23 @@ def test_parse_test_output():
     ]
 
     expected_test_cases = [
-        TestCase(name="test_led_on_command_turns_on_led", file="/mypath/foo.c",
-                 line=19,
+        TestCase(name="test_led_on_command_turns_on_led",
+                 filepath="/mypath/foo.c",
+                 line_num=19,
+                 result=TestResult.Pass,
                  stdout=test_output[0].decode('ascii')),
         TestCase(name="test_led_off_command_turns_off_led",
-                 file="/mypath/foo.c", line=20,
-                 stdout=test_output[1].decode('ascii')),
-        TestCase(name="test_adder_adds_correctly", file="/mypath/foo.c",
-                 line=23,
+                 filepath="/mypath/foo.c",
+                 line_num=20,
+                 result=TestResult.Fail,
+                 stdout=test_output[1].decode('ascii'),
+                 result_message="Test Message!"),
+        TestCase(name="test_adder_adds_correctly",
+                 filepath="/mypath/foo.c",
+                 line_num=23,
+                 result=TestResult.Skip,
                  stdout=test_output[2].decode('ascii')),
     ]
-
-    expected_test_cases[1].add_failure_info("Test Message!")
-    expected_test_cases[2].add_skipped_info()
 
     parser = UnityParser(name="tests")
 
@@ -112,8 +120,7 @@ def test_parse_test_output():
 
     assert parser.done
 
-    assert len(parser.test_suites) == 1
-    assert len(parser.test_suites[0].test_cases) == 3
+    assert len(parser.test_cases) == 3
 
-    for idx, test_case in enumerate(parser.test_suites[0].test_cases):
-        assert_test_case_equivalent(test_case, expected_test_cases[idx])
+    for idx, test_case in enumerate(parser.test_cases):
+        assert expected_test_cases[idx] == test_case

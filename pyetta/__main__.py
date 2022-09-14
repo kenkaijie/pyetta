@@ -6,7 +6,7 @@ logging.basicConfig(level=logging.ERROR)
 
 
 def main():
-    cli(auto_envvar_prefix="PYETTA")
+    cli()
 
 
 # no need to check if name is main, as our file name is explicit.
