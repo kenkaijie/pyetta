@@ -1,0 +1,7 @@
+/mypath/foo.c:1:test_1:PASS
+/mypath/foo.c:2:test_2:PASS
+/mypath/foo.c:3:test_3:PASS
+
+-----------------------
+3 Tests 0 Failures 0 Ignored
+OK

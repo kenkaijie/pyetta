@@ -1,7 +1,6 @@
 import uuid
 from pathlib import Path
 from typing import List
-from xml.etree.ElementTree import parse, XMLParser, Element, tostring
 
 import pytest
 from click import Group
@@ -56,8 +55,7 @@ def test_null_stages_should_return_correct_output(sample_file_all_pass: Path,
                                                   builtins_args: List[str],
                                                   cli_runner: CliRunner,
                                                   cli_entry: Group,
-                                                  tmp_path: Path,
-                                                  test_suite_xml: Element):
+                                                  tmp_path: Path):
 
     builtins_args.extend([
         'lnull',
@@ -65,8 +63,7 @@ def test_null_stages_should_return_correct_output(sample_file_all_pass: Path,
         f'--file={sample_file_all_pass}',
         'punity',
         '--name=test_suite_1',
-        'rjunitxml',
-        f'--file={tmp_path / "output.xml"}',
+        'rexit',
         '--fail-on-empty'
     ])
 
@@ -74,24 +71,12 @@ def test_null_stages_should_return_correct_output(sample_file_all_pass: Path,
 
     assert result.exit_code == 0
 
-    actual_xml = parse(tmp_path / "output.xml", XMLParser()).getroot()
-
-    # strip all non empty fields
-    for elem in actual_xml.iter('*'):
-        if elem.text is not None:
-            elem.text = elem.text.strip()
-        if elem.tail is not None:
-            elem.tail = elem.tail.strip()
-
-    assert tostring(actual_xml) == tostring(test_suite_xml)
-
 
 def test_ignored_tests_should_return_fail(sample_file_ignores: Path,
                                           builtins_args: List[str],
                                           cli_runner: CliRunner,
                                           cli_entry: Group,
-                                          tmp_path: Path,
-                                          test_suite_xml: Element):
+                                          tmp_path: Path):
 
     builtins_args.extend([
         'lnull',

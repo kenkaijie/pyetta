@@ -19,8 +19,8 @@ $ pip install pyetta
 
 ## Assistance
 
-The full documentation, including detailed usage and development goals can 
-be found in the [official documentation](https://pyetta.readthedocs.io/en/latest/).
+Detailed information including usage and development goals can be found in the 
+[official documentation](https://pyetta.readthedocs.io/en/latest/).
 
 # What does it do?
 

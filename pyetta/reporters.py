@@ -4,9 +4,10 @@ into various formats.
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Dict
 
-from junit_xml import TestSuite, TestCase, to_xml_report_file
+import pyetta.parser_data as p
+import junit_xml as j
 
 log = logging.getLogger("pyetta.reporters")
 
@@ -16,20 +17,19 @@ class Reporter(ABC):
     """
 
     @abstractmethod
-    def generate_report(self, tests: Optional[Iterable[TestSuite]]) -> int:
+    def generate_report(self, test_cases: Iterable[p.TestCase]) -> int:
         """Generates a report given an iterable of tests.
 
-        :param tests: tests to generate the report from.
+        :param test_cases: tests to generate the report from.
         :returns: a value indicating the error code to return.
         """
-        ...
 
     @staticmethod
-    def generate_exit_code(test_suites: Iterable[TestSuite], fail_empty: bool,
+    def generate_exit_code(test_cases: Iterable[p.TestCase], fail_empty: bool,
                            fail_skipped: bool) -> int:
         """Inspects test suites to determine the best exit code to return.
 
-        :param test_suites: The test suites to check over.
+        :param test_cases: The test suites to check over.
         :param fail_empty: Set to true if we want empty tests to be considered as a fail.
         :param fail_skipped: Set to true if we want to consider skipped test as a fail.
 
@@ -37,13 +37,12 @@ class Reporter(ABC):
         """
         test_count = 0
         test_fails = 0
-        for test_suite in test_suites:
-            for test_case in test_suite.test_cases:  # type: TestCase
-                test_count += 1
-                if test_case.is_error() or test_case.is_failure():
-                    test_fails += 1
-                if fail_skipped and test_case.is_skipped():
-                    test_fails += 1
+        for test_case in test_cases:  # type: p.TestCase
+            test_count += 1
+            if test_case.result == p.TestResult.Fail:
+                test_fails += 1
+            if fail_skipped and test_case.result == p.TestResult.Skip:
+                test_fails += 1
         if fail_empty and test_count == 0:
             test_fails += 1
         return test_fails
@@ -62,8 +61,9 @@ class ExitCodeReporter(Reporter):
         self._fail_on_empty = fail_on_empty
         super().__init__()
 
-    def generate_report(self, tests: Optional[Iterable[TestSuite]]) -> int:
-        exit_code = self.generate_exit_code(tests, fail_skipped=self._fail_on_skipped,
+    def generate_report(self, tests: Iterable[p.TestCase]) -> int:
+        exit_code = self.generate_exit_code(tests,
+                                            fail_skipped=self._fail_on_skipped,
                                             fail_empty=self._fail_on_empty)
         return min(exit_code, 1)
 
@@ -85,10 +85,27 @@ class JUnitXmlReporter(ExitCodeReporter):
         self._fail_on_empty = fail_on_empty
         super().__init__()
 
-    def generate_report(self, tests: Optional[Iterable[TestSuite]]) -> int:
-        log.debug(
-            f"Generating JUnit XML log for tests at f{self._output_filepath}.")
-        with open(self._output_filepath, 'w') as fo:
-            to_xml_report_file(fo, test_suites=tests, encoding='utf-8')
+    @staticmethod
+    def _to_junit_xml(test_cases: Iterable[p.TestCase]) -> Iterable[j.TestSuite]:
+        # to convert to a junit scheme, we group them by test group
+        junit_test_suites: Dict[str, j.TestSuite] = dict()
+        for test_case in test_cases:
+            if test_case.group not in junit_test_suites:
+                junit_test_suites[test_case.group] = j.TestSuite(name=test_case.group)
+            junit_test_case = j.TestCase(name=test_case.name,
+                                         stdout=test_case.stdout,
+                                         stderr=test_case.stderr,
+                                         timestamp=test_case.timestamp_s,
+                                         line=test_case.line_num,
+                                         file=test_case.filepath)
+            junit_test_suites[test_case.group].test_cases.append(junit_test_case)
 
-        return super().generate_report(tests)
+        return [test_suite for test_suite in junit_test_suites.values()]
+
+    def generate_report(self, test_cases: Optional[Iterable[p.TestCase]]) -> int:
+        log.debug("Generating JUnit XML log for tests at %s.", self._output_filepath)
+        junit_tests = self._to_junit_xml(test_cases)
+        with open(self._output_filepath, 'w') as fo:
+            j.to_xml_report_file(fo, test_suites=junit_tests, encoding='utf-8')
+
+        return super().generate_report(test_cases)
