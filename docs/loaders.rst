@@ -14,7 +14,7 @@ Pyetta provides a set of built-in loaders for common scenarios.
 Implementations
 =================
 
-The pyetta library comes with some default loaders for use to upload test runners to devices.
+The ``pyetta`` library comes with some default loaders for use to upload test runners to devices.
 
 .. automodule:: pyetta.loaders
     :members:

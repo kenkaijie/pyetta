@@ -45,14 +45,13 @@ A firmware developer develops an application targeting an STM32
 microcontroller. This board performs various actions, including interfacing 
 with an SPI-based NAND flash storage device. The developer either writes this 
 driver themselves or they use an existing implementation provided by an external 
-party. Both of these scenarios needs to be integration tested against the rest 
-of the system. 
+party. Both of these scenarios needs to be tested. 
 
 Using `pyetta`, the developer may simplify their testing of the interaction 
-between the 2 chips. Depending on the testing approach, the 
-functionality can be testing either on-target (with the microcontroller 
-running the tests) or off-target, with a PC running the test on the 
-microcontroller.
+between the microcontroller and the flash chip. Depending on the testing 
+approach, the functionality can be testing either on-target (with the 
+microcontroller running the tests) or off-target, with a PC running the test on 
+the microcontroller.
 
 For on-target testing, `pyetta` CLI tool can assist the process of loading 
 firmware onto the board, executing the tests, collecting the data for these 
@@ -69,13 +68,9 @@ The project is structured as follows.
 ```text
 root
 |---.github: Github specific CI/CD actions
-|
 |---docs: Documentation for this project
-|
 |---examples: Examples relating to plugin development.
-|
 |---pyetta: Project sources
-|
 |---test: Test directory for project. 
 ```
 
