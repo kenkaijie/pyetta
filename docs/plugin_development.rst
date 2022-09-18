@@ -2,8 +2,7 @@
 Plugin Development
 =======================
 
-This section has guidelines on creating extension plugins for the pyetta
-system.
+This section has guidelines on creating extension plugins for ``pyetta``.
 
 Click Subcommands
 =====================

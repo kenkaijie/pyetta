@@ -1,6 +1,6 @@
 [project]
 name = "pyetta"
-version = "0.0.4dev2"
+version = "0.0.4"
 description = "Tooling for automated testing on embedded bare metal platforms."
 authors = [
     { name = "Kenneth Ng", email = "ngkaijie@hotmail.com" }
@@ -49,8 +49,8 @@ dev = [
 ]
 
 [project.urls]
-repository = "https://github.com/kenkaijie/pyetta"
-documentation = "https://pyetta.readthedocs.io/"
+Repository = "https://github.com/kenkaijie/pyetta"
+Documentation = "https://pyetta.readthedocs.io/"
 
 [project.scripts]
 pyetta = "pyetta.__main__:main"
